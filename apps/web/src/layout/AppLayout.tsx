@@ -7,10 +7,12 @@ import {
   IconLogout,
   IconPackage,
   IconReceipt,
+  IconReportMoney,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { FINANCE_ROLES, hasRole } from '../auth/roles';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', icon: IconLayoutDashboard },
@@ -18,12 +20,14 @@ const NAV_ITEMS = [
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
+  { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
 ];
 
 export function AppLayout() {
   const [opened, { toggle }] = useDisclosure();
   const { user, logout } = useAuth();
   const location = useLocation();
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.roles || hasRole(user, item.roles));
 
   return (
     <AppShell
@@ -64,7 +68,7 @@ export function AppLayout() {
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
-        {NAV_ITEMS.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             component={Link}

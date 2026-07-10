@@ -121,4 +121,10 @@ export const apiClient = {
     }),
 };
 
+export function toQueryString(params: object): string {
+  const entries = Object.entries(params).filter((entry): entry is [string, string] => !!entry[1]);
+  if (entries.length === 0) return '';
+  return `?${new URLSearchParams(entries).toString()}`;
+}
+
 export { ApiError };

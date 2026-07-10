@@ -1,7 +1,14 @@
 import { Card, SimpleGrid, Text, Title } from '@mantine/core';
-import { IconBoxSeam, IconPackage, IconReceipt, IconTruckDelivery } from '@tabler/icons-react';
+import {
+  IconBoxSeam,
+  IconPackage,
+  IconReceipt,
+  IconReportMoney,
+  IconTruckDelivery,
+} from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { FINANCE_ROLES, hasRole } from '../auth/roles';
 import { PageHeader } from '../components/PageHeader';
 
 const SHORTCUTS = [
@@ -29,10 +36,18 @@ const SHORTCUTS = [
     description: "Fournisseurs et commandes d'approvisionnement",
     icon: IconTruckDelivery,
   },
+  {
+    to: '/finance',
+    label: 'Finance',
+    description: 'Marges, bénéfices et rentabilité',
+    icon: IconReportMoney,
+    roles: FINANCE_ROLES,
+  },
 ];
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const visibleShortcuts = SHORTCUTS.filter((s) => !s.roles || hasRole(user, s.roles));
 
   return (
     <>
@@ -45,7 +60,7 @@ export function DashboardPage() {
         Accès rapide
       </Title>
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
-        {SHORTCUTS.map((shortcut) => (
+        {visibleShortcuts.map((shortcut) => (
           <Card
             key={shortcut.to}
             component={Link}

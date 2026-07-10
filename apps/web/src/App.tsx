@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AppLayout } from './layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
+import { FinancePage } from './pages/finance/FinancePage';
 import { LoginPage } from './pages/LoginPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/stock" element={<StockPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
+          <Route path="/finance" element={<FinancePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
