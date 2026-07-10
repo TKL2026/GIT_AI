@@ -1,4 +1,10 @@
-import { Role } from './role.enum';
+import type {
+  ExpenseCategory,
+  PaymentMethod,
+  PurchaseOrderStatus,
+  Role,
+  StockMovementType,
+} from './enums';
 
 export interface UserDto {
   id: string;
@@ -29,12 +35,6 @@ export interface ProductDto {
   createdAt: string;
 }
 
-export enum StockMovementType {
-  IN = 'IN',
-  OUT = 'OUT',
-  ADJUSTMENT = 'ADJUSTMENT',
-}
-
 export interface StockMovementDto {
   id: string;
   organizationId: string;
@@ -46,13 +46,6 @@ export interface StockMovementDto {
   newQuantity: number;
   reason: string | null;
   createdAt: string;
-}
-
-export enum PaymentMethod {
-  CASH = 'CASH',
-  MOBILE_MONEY = 'MOBILE_MONEY',
-  CARD = 'CARD',
-  OTHER = 'OTHER',
 }
 
 export interface SaleItemDto {
@@ -87,12 +80,6 @@ export interface SupplierDto {
   createdAt: string;
 }
 
-export enum PurchaseOrderStatus {
-  PENDING = 'PENDING',
-  RECEIVED = 'RECEIVED',
-  CANCELLED = 'CANCELLED',
-}
-
 export interface PurchaseOrderItemDto {
   id: string;
   productId: string;
@@ -113,15 +100,6 @@ export interface PurchaseOrderDto {
   items: PurchaseOrderItemDto[];
   createdAt: string;
   receivedAt: string | null;
-}
-
-export enum ExpenseCategory {
-  RENT = 'RENT',
-  UTILITIES = 'UTILITIES',
-  SALARIES = 'SALARIES',
-  SUPPLIES = 'SUPPLIES',
-  TRANSPORT = 'TRANSPORT',
-  OTHER = 'OTHER',
 }
 
 export interface ExpenseDto {

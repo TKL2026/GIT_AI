@@ -1,3 +1,4 @@
+import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -7,11 +8,13 @@ import { LoginPage } from './LoginPage';
 describe('LoginPage', () => {
   it('affiche le formulaire de connexion', () => {
     render(
-      <BrowserRouter>
-        <AuthProvider>
-          <LoginPage />
-        </AuthProvider>
-      </BrowserRouter>,
+      <MantineProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <LoginPage />
+          </AuthProvider>
+        </BrowserRouter>
+      </MantineProvider>,
     );
 
     expect(screen.getByRole('heading', { name: /copilote ia business/i })).toBeInTheDocument();

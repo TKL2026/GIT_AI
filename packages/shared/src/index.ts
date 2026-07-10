@@ -1,2 +1,8 @@
-export * from './role.enum';
+export {
+  ExpenseCategory,
+  PaymentMethod,
+  PurchaseOrderStatus,
+  Role,
+  StockMovementType,
+} from './enums';
 export * from './types';

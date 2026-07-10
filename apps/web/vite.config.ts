@@ -7,6 +7,14 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  optimizeDeps: {
+    include: ['@copilote/shared'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/packages\/shared/, /node_modules/],
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
