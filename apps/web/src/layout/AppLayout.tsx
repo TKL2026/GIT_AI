@@ -7,6 +7,7 @@ import {
   IconLogout,
   IconPackage,
   IconReceipt,
+  IconTruckDelivery,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/products', label: 'Produits', icon: IconPackage },
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
+  { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
 ];
 
 export function AppLayout() {
