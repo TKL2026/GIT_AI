@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Product } from '@prisma/client';
 
 export class ProductResponseDto {
@@ -21,6 +21,15 @@ export class ProductResponseDto {
   salePrice!: number;
 
   @ApiProperty()
+  stockQuantity!: number;
+
+  @ApiPropertyOptional()
+  minStock!: number | null;
+
+  @ApiPropertyOptional()
+  maxStock!: number | null;
+
+  @ApiProperty()
   createdAt!: Date;
 
   static fromEntity(product: Product): ProductResponseDto {
@@ -31,6 +40,9 @@ export class ProductResponseDto {
     dto.sku = product.sku;
     dto.purchasePrice = Number(product.purchasePrice);
     dto.salePrice = Number(product.salePrice);
+    dto.stockQuantity = product.stockQuantity;
+    dto.minStock = product.minStock;
+    dto.maxStock = product.maxStock;
     dto.createdAt = product.createdAt;
     return dto;
   }

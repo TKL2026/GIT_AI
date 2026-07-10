@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { Product } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductThresholdsDto } from './dto/update-product-thresholds.dto';
 
 @Injectable()
 export class ProductsService {
@@ -39,6 +40,25 @@ export class ProductsService {
         sku: dto.sku,
         purchasePrice: dto.purchasePrice,
         salePrice: dto.salePrice,
+        stockQuantity: dto.initialStock ?? 0,
+        minStock: dto.minStock,
+        maxStock: dto.maxStock,
+      },
+    });
+  }
+
+  async updateThresholds(
+    organizationId: string,
+    id: string,
+    dto: UpdateProductThresholdsDto,
+  ): Promise<Product> {
+    await this.findOne(organizationId, id);
+
+    return this.prisma.product.update({
+      where: { id },
+      data: {
+        minStock: dto.minStock,
+        maxStock: dto.maxStock,
       },
     });
   }

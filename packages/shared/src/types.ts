@@ -23,6 +23,28 @@ export interface ProductDto {
   sku: string;
   purchasePrice: number;
   salePrice: number;
+  stockQuantity: number;
+  minStock: number | null;
+  maxStock: number | null;
+  createdAt: string;
+}
+
+export enum StockMovementType {
+  IN = 'IN',
+  OUT = 'OUT',
+  ADJUSTMENT = 'ADJUSTMENT',
+}
+
+export interface StockMovementDto {
+  id: string;
+  organizationId: string;
+  productId: string;
+  performedByUserId: string;
+  type: StockMovementType;
+  quantity: number;
+  previousQuantity: number;
+  newQuantity: number;
+  reason: string | null;
   createdAt: string;
 }
 

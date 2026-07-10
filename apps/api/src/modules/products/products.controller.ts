@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -6,6 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { UpdateProductThresholdsDto } from './dto/update-product-thresholds.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('products')
@@ -39,6 +40,22 @@ export class ProductsController {
     @Body() dto: CreateProductDto,
   ): Promise<ProductResponseDto> {
     const product = await this.productsService.create(currentUser.organizationId, dto);
+    return ProductResponseDto.fromEntity(product);
+  }
+
+  @Patch(':id/thresholds')
+  @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR, Role.STOCK_MANAGER)
+  @ApiOkResponse({ type: ProductResponseDto })
+  async updateThresholds(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductThresholdsDto,
+  ): Promise<ProductResponseDto> {
+    const product = await this.productsService.updateThresholds(
+      currentUser.organizationId,
+      id,
+      dto,
+    );
     return ProductResponseDto.fromEntity(product);
   }
 }
