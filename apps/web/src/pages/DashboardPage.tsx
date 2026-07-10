@@ -1,5 +1,5 @@
 import { Card, SimpleGrid, Text, Title } from '@mantine/core';
-import { IconBoxSeam, IconPackage } from '@tabler/icons-react';
+import { IconBoxSeam, IconPackage, IconReceipt } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/PageHeader';
@@ -16,6 +16,12 @@ const SHORTCUTS = [
     label: 'Stock',
     description: 'Mouvements et alertes de rupture',
     icon: IconBoxSeam,
+  },
+  {
+    to: '/sales',
+    label: 'Ventes',
+    description: 'Enregistrement des ventes et historique',
+    icon: IconReceipt,
   },
 ];
 

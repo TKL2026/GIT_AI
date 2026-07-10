@@ -6,6 +6,7 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconPackage,
+  IconReceipt,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', icon: IconLayoutDashboard },
   { to: '/products', label: 'Produits', icon: IconPackage },
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
+  { to: '/sales', label: 'Ventes', icon: IconReceipt },
 ];
 
 export function AppLayout() {
