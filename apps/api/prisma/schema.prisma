@@ -35,6 +35,15 @@ enum PurchaseOrderStatus {
   CANCELLED
 }
 
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARIES
+  SUPPLIES
+  TRANSPORT
+  OTHER
+}
+
 model Organization {
   id        String   @id @default(uuid())
   name      String
@@ -46,6 +55,7 @@ model Organization {
   sales          Sale[]
   suppliers      Supplier[]
   purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
 
   @@map("organizations")
 }
@@ -65,6 +75,7 @@ model User {
   stockMovements StockMovement[]
   sales          Sale[]
   purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
 
   @@index([organizationId])
   @@map("users")
@@ -214,4 +225,21 @@ model PurchaseOrderItem {
   @@index([purchaseOrderId])
   @@index([productId])
   @@map("purchase_order_items")
+}
+
+model Expense {
+  id                String          @id @default(uuid())
+  organizationId    String
+  performedByUserId String
+  category          ExpenseCategory
+  description       String?
+  amount            Decimal         @db.Decimal(12, 2)
+  expenseDate       DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  performedByUser User         @relation(fields: [performedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@map("expenses")
 }

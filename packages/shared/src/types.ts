@@ -115,6 +115,44 @@ export interface PurchaseOrderDto {
   receivedAt: string | null;
 }
 
+export enum ExpenseCategory {
+  RENT = 'RENT',
+  UTILITIES = 'UTILITIES',
+  SALARIES = 'SALARIES',
+  SUPPLIES = 'SUPPLIES',
+  TRANSPORT = 'TRANSPORT',
+  OTHER = 'OTHER',
+}
+
+export interface ExpenseDto {
+  id: string;
+  organizationId: string;
+  performedByUserId: string;
+  category: ExpenseCategory;
+  description: string | null;
+  amount: number;
+  expenseDate: string;
+  createdAt: string;
+}
+
+export interface FinanceSummaryDto {
+  totalRevenue: number;
+  totalExpenses: number;
+  totalCogs: number;
+  grossMargin: number;
+  netProfit: number;
+  salesCount: number;
+}
+
+export interface ProductProfitabilityDto {
+  productId: string;
+  productName: string;
+  quantitySold: number;
+  totalRevenue: number;
+  estimatedCost: number;
+  estimatedMargin: number;
+}
+
 export interface AuthTokensDto {
   accessToken: string;
   refreshToken: string;
