@@ -5,7 +5,7 @@ import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
 import { StockInDto } from './dto/stock-in.dto';
 import { StockOutDto } from './dto/stock-out.dto';
 
-interface DecrementStockParams {
+interface StockQuantityParams {
   organizationId: string;
   productId: string;
   quantity: number;
@@ -17,36 +17,59 @@ interface DecrementStockParams {
 export class StockService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Incrémente le stock et enregistre le mouvement correspondant. Accepte un
+   * `tx` externe pour pouvoir être appelée depuis la transaction d'un autre
+   * module (ex: PurchaseOrdersService) et échouer/réussir avec elle.
+   */
+  async incrementStockInTransaction(
+    tx: Prisma.TransactionClient,
+    params: StockQuantityParams,
+  ): Promise<{ product: Product; movement: StockMovement }> {
+    const { organizationId, productId, quantity, performedByUserId, reason } = params;
+
+    const product = await tx.product.findFirst({
+      where: { id: productId, organizationId },
+    });
+    if (!product) {
+      throw new NotFoundException('Produit introuvable.');
+    }
+
+    const updated = await tx.product.update({
+      where: { id: product.id },
+      data: { stockQuantity: { increment: quantity } },
+    });
+
+    const movement = await tx.stockMovement.create({
+      data: {
+        organizationId,
+        productId: product.id,
+        performedByUserId,
+        type: StockMovementType.IN,
+        quantity,
+        previousQuantity: product.stockQuantity,
+        newQuantity: updated.stockQuantity,
+        reason,
+      },
+    });
+
+    return { product: updated, movement };
+  }
+
   async recordIn(
     organizationId: string,
     performedByUserId: string,
     dto: StockInDto,
   ): Promise<StockMovement> {
     return this.prisma.$transaction(async (tx) => {
-      const product = await tx.product.findFirst({
-        where: { id: dto.productId, organizationId },
+      const { movement } = await this.incrementStockInTransaction(tx, {
+        organizationId,
+        productId: dto.productId,
+        quantity: dto.quantity,
+        performedByUserId,
+        reason: dto.reason,
       });
-      if (!product) {
-        throw new NotFoundException('Produit introuvable.');
-      }
-
-      const updated = await tx.product.update({
-        where: { id: product.id },
-        data: { stockQuantity: { increment: dto.quantity } },
-      });
-
-      return tx.stockMovement.create({
-        data: {
-          organizationId,
-          productId: product.id,
-          performedByUserId,
-          type: StockMovementType.IN,
-          quantity: dto.quantity,
-          previousQuantity: product.stockQuantity,
-          newQuantity: updated.stockQuantity,
-          reason: dto.reason,
-        },
-      });
+      return movement;
     });
   }
 
@@ -58,7 +81,7 @@ export class StockService {
    */
   async decrementStockInTransaction(
     tx: Prisma.TransactionClient,
-    params: DecrementStockParams,
+    params: StockQuantityParams,
   ): Promise<{ product: Product; movement: StockMovement }> {
     const { organizationId, productId, quantity, performedByUserId, reason } = params;
 
