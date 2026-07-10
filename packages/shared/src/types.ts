@@ -48,6 +48,34 @@ export interface StockMovementDto {
   createdAt: string;
 }
 
+export enum PaymentMethod {
+  CASH = 'CASH',
+  MOBILE_MONEY = 'MOBILE_MONEY',
+  CARD = 'CARD',
+  OTHER = 'OTHER',
+}
+
+export interface SaleItemDto {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface SaleDto {
+  id: string;
+  organizationId: string;
+  performedByUserId: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  items: SaleItemDto[];
+  createdAt: string;
+}
+
 export interface AuthTokensDto {
   accessToken: string;
   refreshToken: string;

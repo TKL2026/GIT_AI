@@ -22,6 +22,13 @@ enum StockMovementType {
   ADJUSTMENT
 }
 
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  CARD
+  OTHER
+}
+
 model Organization {
   id        String   @id @default(uuid())
   name      String
@@ -30,6 +37,7 @@ model Organization {
   users          User[]
   products       Product[]
   stockMovements StockMovement[]
+  sales          Sale[]
 
   @@map("organizations")
 }
@@ -47,6 +55,7 @@ model User {
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   refreshTokens  RefreshToken[]
   stockMovements StockMovement[]
+  sales          Sale[]
 
   @@index([organizationId])
   @@map("users")
@@ -80,6 +89,7 @@ model Product {
 
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stockMovements StockMovement[]
+  saleItems      SaleItem[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -105,4 +115,39 @@ model StockMovement {
   @@index([organizationId])
   @@index([productId])
   @@map("stock_movements")
+}
+
+model Sale {
+  id                String        @id @default(uuid())
+  organizationId    String
+  performedByUserId String
+  customerName      String?
+  customerPhone     String?
+  paymentMethod     PaymentMethod
+  totalAmount       Decimal       @db.Decimal(12, 2)
+  createdAt         DateTime      @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  performedByUser User         @relation(fields: [performedByUserId], references: [id], onDelete: Restrict)
+  items           SaleItem[]
+
+  @@index([organizationId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id          String  @id @default(uuid())
+  saleId      String
+  productId   String
+  productName String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(12, 2)
+  lineTotal   Decimal @db.Decimal(12, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
 }
