@@ -91,4 +91,60 @@ describe('FinanceService', () => {
       ]);
     });
   });
+
+  describe('getMonthlyTrend', () => {
+    it('calcule les ratios et la croissance mois par mois, du plus ancien au plus récent', async () => {
+      // sale.findMany est appelé une fois par mois, dans l'ordre chronologique
+      // (ranges.map + Promise.all préservent cet ordre d'appel synchrone).
+      const revenuesByMonth = [100000, 150000];
+      let callIndex = -1;
+      prisma.sale.findMany.mockImplementation(() => {
+        callIndex += 1;
+        return Promise.resolve([{ totalAmount: revenuesByMonth[callIndex] }]);
+      });
+      prisma.expense.findMany.mockResolvedValue([]);
+      prisma.saleItem.findMany.mockResolvedValue([]);
+
+      const trend = await financeService.getMonthlyTrend(organizationId, 2);
+
+      expect(trend).toHaveLength(2);
+      expect(trend[0].month).toMatch(/^\d{4}-\d{2}$/);
+      expect(trend[0].totalRevenue).toBe(100000);
+      expect(trend[1].totalRevenue).toBe(150000);
+      expect(trend[0].revenueGrowthRatio).toBeNull();
+      expect(trend[1].revenueGrowthRatio).toBeCloseTo(0.5);
+      expect(trend[0].grossMarginRatio).toBe(1); // pas de COGS/dépenses mockées
+      expect(trend[0].netMarginRatio).toBe(1);
+    });
+
+    it('renvoie des ratios null quand le chiffre d’affaires du mois est nul', async () => {
+      prisma.sale.findMany.mockResolvedValue([]);
+      prisma.expense.findMany.mockResolvedValue([]);
+      prisma.saleItem.findMany.mockResolvedValue([]);
+
+      const [month] = await financeService.getMonthlyTrend(organizationId, 1);
+
+      expect(month.totalRevenue).toBe(0);
+      expect(month.grossMarginRatio).toBeNull();
+      expect(month.netMarginRatio).toBeNull();
+      expect(month.revenueGrowthRatio).toBeNull();
+    });
+
+    it('renvoie une croissance nulle si le mois précédent avait un CA de zéro', async () => {
+      const revenuesByMonth = [0, 50000];
+      let callIndex = -1;
+      prisma.sale.findMany.mockImplementation(() => {
+        callIndex += 1;
+        const amount = revenuesByMonth[callIndex];
+        return Promise.resolve(amount > 0 ? [{ totalAmount: amount }] : []);
+      });
+      prisma.expense.findMany.mockResolvedValue([]);
+      prisma.saleItem.findMany.mockResolvedValue([]);
+
+      const trend = await financeService.getMonthlyTrend(organizationId, 2);
+
+      expect(trend[1].totalRevenue).toBe(50000);
+      expect(trend[1].revenueGrowthRatio).toBeNull();
+    });
+  });
 });

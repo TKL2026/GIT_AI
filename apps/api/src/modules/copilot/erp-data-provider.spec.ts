@@ -17,7 +17,11 @@ describe('ErpDataProvider', () => {
   let salesService: { findAll: jest.Mock };
   let purchaseOrdersService: { findAll: jest.Mock };
   let suppliersService: { findAll: jest.Mock };
-  let financeService: { getSummary: jest.Mock; getProductsProfitability: jest.Mock };
+  let financeService: {
+    getSummary: jest.Mock;
+    getProductsProfitability: jest.Mock;
+    getMonthlyTrend: jest.Mock;
+  };
   let forecastService: { getReplenishmentForecast: jest.Mock };
   let fraudService: { getAnomalies: jest.Mock };
   let provider: ErpDataProvider;
@@ -42,7 +46,11 @@ describe('ErpDataProvider', () => {
     salesService = { findAll: jest.fn() };
     purchaseOrdersService = { findAll: jest.fn() };
     suppliersService = { findAll: jest.fn() };
-    financeService = { getSummary: jest.fn(), getProductsProfitability: jest.fn() };
+    financeService = {
+      getSummary: jest.fn(),
+      getProductsProfitability: jest.fn(),
+      getMonthlyTrend: jest.fn(),
+    };
     forecastService = { getReplenishmentForecast: jest.fn() };
     fraudService = { getAnomalies: jest.fn() };
 
@@ -56,6 +64,29 @@ describe('ErpDataProvider', () => {
       forecastService as unknown as ForecastService,
       fraudService as unknown as FraudService,
     );
+  });
+
+  it('transmet tenantId/monthsBack à FinanceService.getMonthlyTrend', async () => {
+    const trend = [
+      {
+        month: '2026-06',
+        totalRevenue: 100000,
+        totalExpenses: 20000,
+        totalCogs: 40000,
+        grossMargin: 60000,
+        netProfit: 40000,
+        salesCount: 5,
+        grossMarginRatio: 0.6,
+        netMarginRatio: 0.4,
+        revenueGrowthRatio: null,
+      },
+    ];
+    financeService.getMonthlyTrend.mockResolvedValue(trend);
+
+    const result = await provider.getMonthlyFinanceTrend(organizationId, 3);
+
+    expect(financeService.getMonthlyTrend).toHaveBeenCalledWith(organizationId, 3);
+    expect(result).toEqual(trend);
   });
 
   it('transmet tenantId/from/to à FinanceService.getSummary', async () => {

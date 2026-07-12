@@ -111,6 +111,10 @@ export class CopilotEngine {
         return JSON.stringify(await this.dataProvider.getReplenishmentForecast(tenantId));
       case 'get_fraud_anomalies':
         return JSON.stringify(await this.dataProvider.getFraudAnomalies(tenantId));
+      case 'get_monthly_finance_trend': {
+        const months = typeof params.months === 'number' ? params.months : undefined;
+        return JSON.stringify(await this.dataProvider.getMonthlyFinanceTrend(tenantId, months));
+      }
       default:
         return JSON.stringify({ error: `Outil inconnu: ${name}` });
     }

@@ -6,6 +6,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { FinanceQueryDto } from './dto/finance-query.dto';
 import { FinanceSummaryResponseDto } from './dto/finance-summary-response.dto';
+import { MonthlyFinanceTrendResponseDto } from './dto/monthly-finance-trend-response.dto';
+import { MonthlyTrendQueryDto } from './dto/monthly-trend-query.dto';
 import { ProductProfitabilityResponseDto } from './dto/product-profitability-response.dto';
 import { FinanceService } from './finance.service';
 
@@ -36,5 +38,14 @@ export class FinanceController {
       query.from,
       query.to,
     );
+  }
+
+  @Get('monthly-trend')
+  @ApiOkResponse({ type: [MonthlyFinanceTrendResponseDto] })
+  getMonthlyTrend(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Query() query: MonthlyTrendQueryDto,
+  ): Promise<MonthlyFinanceTrendResponseDto[]> {
+    return this.financeService.getMonthlyTrend(currentUser.organizationId, query.months);
   }
 }

@@ -1,6 +1,7 @@
 import {
   NormalizedFinanceSummary,
   NormalizedFraudAnomaly,
+  NormalizedMonthlyFinanceTrend,
   NormalizedProduct,
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,
@@ -37,4 +38,6 @@ export interface BusinessDataProvider {
   getReplenishmentForecast(tenantId: string): Promise<NormalizedStockForecast[]>;
 
   getFraudAnomalies(tenantId: string): Promise<NormalizedFraudAnomaly[]>;
+
+  getMonthlyFinanceTrend(tenantId: string, monthsBack?: number): Promise<NormalizedMonthlyFinanceTrend[]>;
 }

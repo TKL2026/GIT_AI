@@ -39,6 +39,7 @@ function buildDataProvider(overrides: Partial<BusinessDataProvider> = {}): jest.
     getSuppliers: jest.fn(),
     getReplenishmentForecast: jest.fn(),
     getFraudAnomalies: jest.fn(),
+    getMonthlyFinanceTrend: jest.fn(),
     ...overrides,
   } as jest.Mocked<BusinessDataProvider>;
 }
@@ -149,6 +150,37 @@ describe('CopilotEngine', () => {
 
     expect(dataProvider.getFraudAnomalies).toHaveBeenCalledWith('org-1');
     expect(reply).toBe('Un signal à vérifier sur le riz.');
+  });
+
+  it('route get_monthly_finance_trend vers dataProvider.getMonthlyFinanceTrend avec le paramètre months', async () => {
+    const trend = [
+      {
+        month: '2026-06',
+        totalRevenue: 100000,
+        totalExpenses: 20000,
+        totalCogs: 40000,
+        grossMargin: 60000,
+        netProfit: 40000,
+        salesCount: 5,
+        grossMarginRatio: 0.6,
+        netMarginRatio: 0.4,
+        revenueGrowthRatio: null,
+      },
+    ];
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_monthly_finance_trend', { months: 3 }))
+      .mockResolvedValueOnce(textMessage('Le CA progresse sur la période.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({
+      getMonthlyFinanceTrend: jest.fn().mockResolvedValue(trend),
+    });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    const reply = await engine.chat('org-1', [{ role: 'user', content: 'Comment évolue mon CA ?' }]);
+
+    expect(dataProvider.getMonthlyFinanceTrend).toHaveBeenCalledWith('org-1', 3);
+    expect(reply).toBe('Le CA progresse sur la période.');
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {

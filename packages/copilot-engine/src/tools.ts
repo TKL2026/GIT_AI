@@ -76,4 +76,18 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
       "Renvoie une liste de signaux statistiques à vérifier humainement, calculés sur les 30 derniers jours : ajustements de stock à la baisse sans motif renseigné, et ventes conclues à un prix nettement inférieur au prix catalogue. Ce sont des indices à examiner, PAS des preuves de fraude — présente-les toujours comme des points à vérifier avec l'employé ou le contexte concerné, jamais comme une accusation.",
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'get_monthly_finance_trend',
+    description:
+      "Renvoie l'évolution financière mois par mois (chiffre d'affaires, dépenses, marge brute, bénéfice net, nombre de ventes) sur plusieurs mois, du plus ancien au plus récent, avec des ratios (marge brute, marge nette) et la croissance du chiffre d'affaires par rapport au mois précédent. Utile pour répondre à des questions sur les tendances ou l'évolution dans le temps, pas seulement un instantané.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        months: {
+          type: 'number',
+          description: "Nombre de mois à inclure, du plus ancien au plus récent (défaut 6, maximum 12).",
+        },
+      },
+    },
+  },
 ];

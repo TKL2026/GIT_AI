@@ -4,6 +4,7 @@ export {
   FraudAnomalyType,
   NormalizedFinanceSummary,
   NormalizedFraudAnomaly,
+  NormalizedMonthlyFinanceTrend,
   NormalizedProduct,
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,

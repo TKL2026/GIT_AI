@@ -4,6 +4,7 @@ import {
   BusinessDataProvider,
   NormalizedFinanceSummary,
   NormalizedFraudAnomaly,
+  NormalizedMonthlyFinanceTrend,
   NormalizedProduct,
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,
@@ -93,6 +94,10 @@ export class ErpDataProvider implements BusinessDataProvider {
 
   getFraudAnomalies(tenantId: string): Promise<NormalizedFraudAnomaly[]> {
     return this.fraudService.getAnomalies(tenantId);
+  }
+
+  getMonthlyFinanceTrend(tenantId: string, monthsBack?: number): Promise<NormalizedMonthlyFinanceTrend[]> {
+    return this.financeService.getMonthlyTrend(tenantId, monthsBack);
   }
 }
 

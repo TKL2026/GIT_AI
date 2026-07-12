@@ -91,3 +91,16 @@ export interface NormalizedFraudAnomaly {
   totalImpact: number;
   description: string;
 }
+
+export interface NormalizedMonthlyFinanceTrend {
+  month: string;
+  totalRevenue: number;
+  totalExpenses: number;
+  totalCogs: number;
+  grossMargin: number;
+  netProfit: number;
+  salesCount: number;
+  grossMarginRatio: number | null;
+  netMarginRatio: number | null;
+  revenueGrowthRatio: number | null;
+}

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FinanceSummaryResponseDto } from './dto/finance-summary-response.dto';
+import { MonthlyFinanceTrendResponseDto } from './dto/monthly-finance-trend-response.dto';
 import { ProductProfitabilityResponseDto } from './dto/product-profitability-response.dto';
+
+const DEFAULT_TREND_MONTHS = 6;
 
 function buildDateFilter(from?: string, to?: string): { gte?: Date; lte?: Date } | undefined {
   if (!from && !to) {
@@ -11,6 +14,23 @@ function buildDateFilter(from?: string, to?: string): { gte?: Date; lte?: Date }
     ...(from ? { gte: new Date(from) } : {}),
     ...(to ? { lte: new Date(to) } : {}),
   };
+}
+
+function buildMonthRanges(monthsBack: number): { label: string; from: string; to: string }[] {
+  const now = new Date();
+  const ranges: { label: string; from: string; to: string }[] = [];
+
+  for (let i = monthsBack - 1; i >= 0; i -= 1) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
+    ranges.push({
+      label: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`,
+      from: start.toISOString(),
+      to: end.toISOString(),
+    });
+  }
+
+  return ranges;
 }
 
 @Injectable()
@@ -99,5 +119,31 @@ export class FinanceService {
         };
       })
       .sort((a, b) => b.estimatedMargin - a.estimatedMargin);
+  }
+
+  async getMonthlyTrend(
+    organizationId: string,
+    monthsBack: number = DEFAULT_TREND_MONTHS,
+  ): Promise<MonthlyFinanceTrendResponseDto[]> {
+    const ranges = buildMonthRanges(monthsBack);
+    const summaries = await Promise.all(
+      ranges.map((range) => this.getSummary(organizationId, range.from, range.to)),
+    );
+
+    const trend: MonthlyFinanceTrendResponseDto[] = summaries.map((summary, index) => ({
+      month: ranges[index].label,
+      ...summary,
+      grossMarginRatio: summary.totalRevenue > 0 ? summary.grossMargin / summary.totalRevenue : null,
+      netMarginRatio: summary.totalRevenue > 0 ? summary.netProfit / summary.totalRevenue : null,
+      revenueGrowthRatio: null,
+    }));
+
+    for (let i = 1; i < trend.length; i += 1) {
+      const previousRevenue = trend[i - 1].totalRevenue;
+      trend[i].revenueGrowthRatio =
+        previousRevenue > 0 ? (trend[i].totalRevenue - previousRevenue) / previousRevenue : null;
+    }
+
+    return trend;
   }
 }
