@@ -1,5 +1,6 @@
 import { PurchaseOrderStatus } from '@prisma/client';
 import { FinanceService } from '../finance/finance.service';
+import { ForecastService } from '../forecast/forecast.service';
 import { ProductsService } from '../products/products.service';
 import { PurchaseOrdersService } from '../purchases/purchase-orders.service';
 import { SalesService } from '../sales/sales.service';
@@ -16,6 +17,7 @@ describe('ErpDataProvider', () => {
   let purchaseOrdersService: { findAll: jest.Mock };
   let suppliersService: { findAll: jest.Mock };
   let financeService: { getSummary: jest.Mock; getProductsProfitability: jest.Mock };
+  let forecastService: { getReplenishmentForecast: jest.Mock };
   let provider: ErpDataProvider;
 
   const buildProduct = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -39,6 +41,7 @@ describe('ErpDataProvider', () => {
     purchaseOrdersService = { findAll: jest.fn() };
     suppliersService = { findAll: jest.fn() };
     financeService = { getSummary: jest.fn(), getProductsProfitability: jest.fn() };
+    forecastService = { getReplenishmentForecast: jest.fn() };
 
     provider = new ErpDataProvider(
       productsService as unknown as ProductsService,
@@ -47,6 +50,7 @@ describe('ErpDataProvider', () => {
       purchaseOrdersService as unknown as PurchaseOrdersService,
       suppliersService as unknown as SuppliersService,
       financeService as unknown as FinanceService,
+      forecastService as unknown as ForecastService,
     );
   });
 
@@ -65,6 +69,25 @@ describe('ErpDataProvider', () => {
 
     expect(financeService.getSummary).toHaveBeenCalledWith(organizationId, '2026-07-01', '2026-07-31');
     expect(result).toEqual(summary);
+  });
+
+  it('transmet tenantId à ForecastService.getReplenishmentForecast', async () => {
+    const forecast = [
+      {
+        productId: 'prod-1',
+        productName: 'Riz 25kg',
+        currentStock: 3,
+        averageDailySales: 1,
+        daysUntilStockout: 3,
+        recommendedReorderQuantity: 27,
+      },
+    ];
+    forecastService.getReplenishmentForecast.mockResolvedValue(forecast);
+
+    const result = await provider.getReplenishmentForecast(organizationId);
+
+    expect(forecastService.getReplenishmentForecast).toHaveBeenCalledWith(organizationId);
+    expect(result).toEqual(forecast);
   });
 
   it('normalise les produits en alerte de stock', async () => {

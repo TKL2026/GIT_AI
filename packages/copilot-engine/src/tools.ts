@@ -64,4 +64,10 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
     description: "Renvoie la liste des fournisseurs de l'entreprise.",
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'get_replenishment_forecast',
+    description:
+      "Renvoie, pour chaque produit, une prévision de réapprovisionnement calculée à partir de la vélocité de vente des 30 derniers jours : ventes moyennes par jour, nombre de jours estimé avant rupture de stock, et quantité recommandée à commander. Trié du plus urgent au moins urgent ; les produits sans vente récente n'ont pas de prévision (valeurs nulles).",
+    input_schema: { type: 'object', properties: {} },
+  },
 ];

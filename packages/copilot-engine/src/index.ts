@@ -7,6 +7,7 @@ export {
   NormalizedPurchaseOrderItem,
   NormalizedSale,
   NormalizedSaleItem,
+  NormalizedStockForecast,
   NormalizedSupplier,
 } from './contracts/normalized-types';
 export { AnthropicMessagesClient, ChatMessage, CopilotEngine, CopilotEngineOptions } from './copilot-engine';

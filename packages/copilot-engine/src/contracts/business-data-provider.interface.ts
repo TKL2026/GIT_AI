@@ -4,6 +4,7 @@ import {
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,
   NormalizedSale,
+  NormalizedStockForecast,
   NormalizedSupplier,
 } from './normalized-types';
 
@@ -31,4 +32,6 @@ export interface BusinessDataProvider {
   getPendingPurchaseOrders(tenantId: string): Promise<NormalizedPurchaseOrder[]>;
 
   getSuppliers(tenantId: string): Promise<NormalizedSupplier[]>;
+
+  getReplenishmentForecast(tenantId: string): Promise<NormalizedStockForecast[]>;
 }

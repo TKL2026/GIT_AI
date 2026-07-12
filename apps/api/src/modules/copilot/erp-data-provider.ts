@@ -7,6 +7,7 @@ import {
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,
   NormalizedSale,
+  NormalizedStockForecast,
   NormalizedSupplier,
 } from '@copilote/copilot-engine';
 import { ProductResponseDto } from '../products/dto/product-response.dto';
@@ -19,6 +20,7 @@ import { StockService } from '../stock/stock.service';
 import { SupplierResponseDto } from '../suppliers/dto/supplier-response.dto';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { FinanceService } from '../finance/finance.service';
+import { ForecastService } from '../forecast/forecast.service';
 
 const DEFAULT_RECENT_SALES_LIMIT = 20;
 const MAX_RECENT_SALES_LIMIT = 50;
@@ -39,6 +41,7 @@ export class ErpDataProvider implements BusinessDataProvider {
     private readonly purchaseOrdersService: PurchaseOrdersService,
     private readonly suppliersService: SuppliersService,
     private readonly financeService: FinanceService,
+    private readonly forecastService: ForecastService,
   ) {}
 
   getFinanceSummary(tenantId: string, from?: string, to?: string): Promise<NormalizedFinanceSummary> {
@@ -79,6 +82,10 @@ export class ErpDataProvider implements BusinessDataProvider {
   async getSuppliers(tenantId: string): Promise<NormalizedSupplier[]> {
     const suppliers = await this.suppliersService.findAll(tenantId);
     return suppliers.map((supplier) => toNormalizedSupplier(SupplierResponseDto.fromEntity(supplier)));
+  }
+
+  getReplenishmentForecast(tenantId: string): Promise<NormalizedStockForecast[]> {
+    return this.forecastService.getReplenishmentForecast(tenantId);
   }
 }
 

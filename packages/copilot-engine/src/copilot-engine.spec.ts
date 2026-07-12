@@ -37,6 +37,7 @@ function buildDataProvider(overrides: Partial<BusinessDataProvider> = {}): jest.
     getRecentSales: jest.fn(),
     getPendingPurchaseOrders: jest.fn(),
     getSuppliers: jest.fn(),
+    getReplenishmentForecast: jest.fn(),
     ...overrides,
   } as jest.Mocked<BusinessDataProvider>;
 }
@@ -91,6 +92,33 @@ describe('CopilotEngine', () => {
     await engine.chat('org-legit-tenant', [{ role: 'user', content: 'Résumé finance ?' }]);
 
     expect(dataProvider.getFinanceSummary).toHaveBeenCalledWith('org-legit-tenant', '2026-01-01', undefined);
+  });
+
+  it('route get_replenishment_forecast vers dataProvider.getReplenishmentForecast', async () => {
+    const forecast = [
+      {
+        productId: 'p1',
+        productName: 'Riz 25kg',
+        currentStock: 4,
+        averageDailySales: 2,
+        daysUntilStockout: 2,
+        recommendedReorderQuantity: 56,
+      },
+    ];
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_replenishment_forecast', {}))
+      .mockResolvedValueOnce(textMessage('Réapprovisionnez le riz sous 2 jours.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({
+      getReplenishmentForecast: jest.fn().mockResolvedValue(forecast),
+    });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je recommander bientôt ?' }]);
+
+    expect(dataProvider.getReplenishmentForecast).toHaveBeenCalledWith('org-1');
+    expect(reply).toBe('Réapprovisionnez le riz sous 2 jours.');
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {

@@ -68,3 +68,12 @@ export interface NormalizedProductProfitability {
   estimatedCost: number;
   estimatedMargin: number;
 }
+
+export interface NormalizedStockForecast {
+  productId: string;
+  productName: string;
+  currentStock: number;
+  averageDailySales: number;
+  daysUntilStockout: number | null;
+  recommendedReorderQuantity: number | null;
+}
