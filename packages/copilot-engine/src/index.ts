@@ -1,6 +1,9 @@
 export { BusinessDataProvider } from './contracts/business-data-provider.interface';
 export {
+  FraudAnomalySeverity,
+  FraudAnomalyType,
   NormalizedFinanceSummary,
+  NormalizedFraudAnomaly,
   NormalizedProduct,
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,

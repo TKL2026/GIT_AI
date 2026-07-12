@@ -1,6 +1,7 @@
 import { PurchaseOrderStatus } from '@prisma/client';
 import { FinanceService } from '../finance/finance.service';
 import { ForecastService } from '../forecast/forecast.service';
+import { FraudService } from '../fraud/fraud.service';
 import { ProductsService } from '../products/products.service';
 import { PurchaseOrdersService } from '../purchases/purchase-orders.service';
 import { SalesService } from '../sales/sales.service';
@@ -18,6 +19,7 @@ describe('ErpDataProvider', () => {
   let suppliersService: { findAll: jest.Mock };
   let financeService: { getSummary: jest.Mock; getProductsProfitability: jest.Mock };
   let forecastService: { getReplenishmentForecast: jest.Mock };
+  let fraudService: { getAnomalies: jest.Mock };
   let provider: ErpDataProvider;
 
   const buildProduct = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -42,6 +44,7 @@ describe('ErpDataProvider', () => {
     suppliersService = { findAll: jest.fn() };
     financeService = { getSummary: jest.fn(), getProductsProfitability: jest.fn() };
     forecastService = { getReplenishmentForecast: jest.fn() };
+    fraudService = { getAnomalies: jest.fn() };
 
     provider = new ErpDataProvider(
       productsService as unknown as ProductsService,
@@ -51,6 +54,7 @@ describe('ErpDataProvider', () => {
       suppliersService as unknown as SuppliersService,
       financeService as unknown as FinanceService,
       forecastService as unknown as ForecastService,
+      fraudService as unknown as FraudService,
     );
   });
 
@@ -88,6 +92,27 @@ describe('ErpDataProvider', () => {
 
     expect(forecastService.getReplenishmentForecast).toHaveBeenCalledWith(organizationId);
     expect(result).toEqual(forecast);
+  });
+
+  it('transmet tenantId à FraudService.getAnomalies', async () => {
+    const anomalies = [
+      {
+        type: 'unexplained_stock_adjustment',
+        severity: 'high',
+        productId: 'prod-1',
+        productName: 'Riz 25kg',
+        performedByUserId: 'user-1',
+        occurrencesCount: 2,
+        totalImpact: 12,
+        description: '2 ajustement(s)...',
+      },
+    ];
+    fraudService.getAnomalies.mockResolvedValue(anomalies);
+
+    const result = await provider.getFraudAnomalies(organizationId);
+
+    expect(fraudService.getAnomalies).toHaveBeenCalledWith(organizationId);
+    expect(result).toEqual(anomalies);
   });
 
   it('normalise les produits en alerte de stock', async () => {

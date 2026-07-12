@@ -3,6 +3,7 @@ import { PurchaseOrderStatus } from '@prisma/client';
 import {
   BusinessDataProvider,
   NormalizedFinanceSummary,
+  NormalizedFraudAnomaly,
   NormalizedProduct,
   NormalizedProductProfitability,
   NormalizedPurchaseOrder,
@@ -21,6 +22,7 @@ import { SupplierResponseDto } from '../suppliers/dto/supplier-response.dto';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { FinanceService } from '../finance/finance.service';
 import { ForecastService } from '../forecast/forecast.service';
+import { FraudService } from '../fraud/fraud.service';
 
 const DEFAULT_RECENT_SALES_LIMIT = 20;
 const MAX_RECENT_SALES_LIMIT = 50;
@@ -42,6 +44,7 @@ export class ErpDataProvider implements BusinessDataProvider {
     private readonly suppliersService: SuppliersService,
     private readonly financeService: FinanceService,
     private readonly forecastService: ForecastService,
+    private readonly fraudService: FraudService,
   ) {}
 
   getFinanceSummary(tenantId: string, from?: string, to?: string): Promise<NormalizedFinanceSummary> {
@@ -86,6 +89,10 @@ export class ErpDataProvider implements BusinessDataProvider {
 
   getReplenishmentForecast(tenantId: string): Promise<NormalizedStockForecast[]> {
     return this.forecastService.getReplenishmentForecast(tenantId);
+  }
+
+  getFraudAnomalies(tenantId: string): Promise<NormalizedFraudAnomaly[]> {
+    return this.fraudService.getAnomalies(tenantId);
   }
 }
 

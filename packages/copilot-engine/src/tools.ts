@@ -70,4 +70,10 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
       "Renvoie, pour chaque produit, une prévision de réapprovisionnement calculée à partir de la vélocité de vente des 30 derniers jours : ventes moyennes par jour, nombre de jours estimé avant rupture de stock, et quantité recommandée à commander. Trié du plus urgent au moins urgent ; les produits sans vente récente n'ont pas de prévision (valeurs nulles).",
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'get_fraud_anomalies',
+    description:
+      "Renvoie une liste de signaux statistiques à vérifier humainement, calculés sur les 30 derniers jours : ajustements de stock à la baisse sans motif renseigné, et ventes conclues à un prix nettement inférieur au prix catalogue. Ce sont des indices à examiner, PAS des preuves de fraude — présente-les toujours comme des points à vérifier avec l'employé ou le contexte concerné, jamais comme une accusation.",
+    input_schema: { type: 'object', properties: {} },
+  },
 ];

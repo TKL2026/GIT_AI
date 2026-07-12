@@ -38,6 +38,7 @@ function buildDataProvider(overrides: Partial<BusinessDataProvider> = {}): jest.
     getPendingPurchaseOrders: jest.fn(),
     getSuppliers: jest.fn(),
     getReplenishmentForecast: jest.fn(),
+    getFraudAnomalies: jest.fn(),
     ...overrides,
   } as jest.Mocked<BusinessDataProvider>;
 }
@@ -119,6 +120,35 @@ describe('CopilotEngine', () => {
 
     expect(dataProvider.getReplenishmentForecast).toHaveBeenCalledWith('org-1');
     expect(reply).toBe('Réapprovisionnez le riz sous 2 jours.');
+  });
+
+  it('route get_fraud_anomalies vers dataProvider.getFraudAnomalies', async () => {
+    const anomalies = [
+      {
+        type: 'unexplained_stock_adjustment' as const,
+        severity: 'high' as const,
+        productId: 'p1',
+        productName: 'Riz 25kg',
+        performedByUserId: 'user-1',
+        occurrencesCount: 2,
+        totalImpact: 12,
+        description: '2 ajustement(s) de stock à la baisse sans motif renseigné, totalisant 12 unité(s).',
+      },
+    ];
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_fraud_anomalies', {}))
+      .mockResolvedValueOnce(textMessage('Un signal à vérifier sur le riz.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({
+      getFraudAnomalies: jest.fn().mockResolvedValue(anomalies),
+    });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    const reply = await engine.chat('org-1', [{ role: 'user', content: 'Y a-t-il des anomalies suspectes ?' }]);
+
+    expect(dataProvider.getFraudAnomalies).toHaveBeenCalledWith('org-1');
+    expect(reply).toBe('Un signal à vérifier sur le riz.');
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {

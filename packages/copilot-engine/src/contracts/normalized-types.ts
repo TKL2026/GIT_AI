@@ -77,3 +77,17 @@ export interface NormalizedStockForecast {
   daysUntilStockout: number | null;
   recommendedReorderQuantity: number | null;
 }
+
+export type FraudAnomalyType = 'unexplained_stock_adjustment' | 'below_catalog_price_sale';
+export type FraudAnomalySeverity = 'medium' | 'high';
+
+export interface NormalizedFraudAnomaly {
+  type: FraudAnomalyType;
+  severity: FraudAnomalySeverity;
+  productId: string;
+  productName: string;
+  performedByUserId: string | null;
+  occurrencesCount: number;
+  totalImpact: number;
+  description: string;
+}

@@ -109,6 +109,8 @@ export class CopilotEngine {
         return JSON.stringify(await this.dataProvider.getSuppliers(tenantId));
       case 'get_replenishment_forecast':
         return JSON.stringify(await this.dataProvider.getReplenishmentForecast(tenantId));
+      case 'get_fraud_anomalies':
+        return JSON.stringify(await this.dataProvider.getFraudAnomalies(tenantId));
       default:
         return JSON.stringify({ error: `Outil inconnu: ${name}` });
     }

@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CopilotModule } from './modules/copilot/copilot.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
+import { FraudModule } from './modules/fraud/fraud.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -38,6 +39,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PurchasesModule,
     FinanceModule,
     ForecastModule,
+    FraudModule,
     CopilotModule,
   ],
   providers: [
