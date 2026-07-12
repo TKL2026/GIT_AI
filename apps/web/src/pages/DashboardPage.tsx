@@ -1,6 +1,7 @@
 import { Card, SimpleGrid, Text, Title } from '@mantine/core';
 import {
   IconBoxSeam,
+  IconMessageChatbot,
   IconPackage,
   IconReceipt,
   IconReportMoney,
@@ -41,6 +42,13 @@ const SHORTCUTS = [
     label: 'Finance',
     description: 'Marges, bénéfices et rentabilité',
     icon: IconReportMoney,
+    roles: FINANCE_ROLES,
+  },
+  {
+    to: '/copilot',
+    label: 'Copilote IA',
+    description: 'Questions en langage naturel sur votre activité',
+    icon: IconMessageChatbot,
     roles: FINANCE_ROLES,
   },
 ];

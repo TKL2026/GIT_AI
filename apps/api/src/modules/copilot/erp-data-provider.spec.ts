@@ -1,0 +1,167 @@
+import { PurchaseOrderStatus } from '@prisma/client';
+import { FinanceService } from '../finance/finance.service';
+import { ProductsService } from '../products/products.service';
+import { PurchaseOrdersService } from '../purchases/purchase-orders.service';
+import { SalesService } from '../sales/sales.service';
+import { StockService } from '../stock/stock.service';
+import { SuppliersService } from '../suppliers/suppliers.service';
+import { ErpDataProvider } from './erp-data-provider';
+
+describe('ErpDataProvider', () => {
+  const organizationId = 'org-1';
+
+  let productsService: { findAll: jest.Mock };
+  let stockService: { findAlerts: jest.Mock };
+  let salesService: { findAll: jest.Mock };
+  let purchaseOrdersService: { findAll: jest.Mock };
+  let suppliersService: { findAll: jest.Mock };
+  let financeService: { getSummary: jest.Mock; getProductsProfitability: jest.Mock };
+  let provider: ErpDataProvider;
+
+  const buildProduct = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: 'prod-1',
+    organizationId,
+    name: 'Riz 25kg',
+    sku: 'RIZ-25KG',
+    purchasePrice: 12000,
+    salePrice: 15000,
+    stockQuantity: 3,
+    minStock: 5,
+    maxStock: null,
+    createdAt: new Date('2026-07-01'),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    productsService = { findAll: jest.fn() };
+    stockService = { findAlerts: jest.fn() };
+    salesService = { findAll: jest.fn() };
+    purchaseOrdersService = { findAll: jest.fn() };
+    suppliersService = { findAll: jest.fn() };
+    financeService = { getSummary: jest.fn(), getProductsProfitability: jest.fn() };
+
+    provider = new ErpDataProvider(
+      productsService as unknown as ProductsService,
+      stockService as unknown as StockService,
+      salesService as unknown as SalesService,
+      purchaseOrdersService as unknown as PurchaseOrdersService,
+      suppliersService as unknown as SuppliersService,
+      financeService as unknown as FinanceService,
+    );
+  });
+
+  it('transmet tenantId/from/to à FinanceService.getSummary', async () => {
+    const summary = {
+      totalRevenue: 100,
+      totalExpenses: 20,
+      totalCogs: 40,
+      grossMargin: 60,
+      netProfit: 40,
+      salesCount: 2,
+    };
+    financeService.getSummary.mockResolvedValue(summary);
+
+    const result = await provider.getFinanceSummary(organizationId, '2026-07-01', '2026-07-31');
+
+    expect(financeService.getSummary).toHaveBeenCalledWith(organizationId, '2026-07-01', '2026-07-31');
+    expect(result).toEqual(summary);
+  });
+
+  it('normalise les produits en alerte de stock', async () => {
+    stockService.findAlerts.mockResolvedValue([buildProduct()]);
+
+    const result = await provider.getStockAlerts(organizationId);
+
+    expect(stockService.findAlerts).toHaveBeenCalledWith(organizationId);
+    expect(result).toEqual([
+      {
+        id: 'prod-1',
+        name: 'Riz 25kg',
+        sku: 'RIZ-25KG',
+        purchasePrice: 12000,
+        salePrice: 15000,
+        stockQuantity: 3,
+        minStock: 5,
+        maxStock: null,
+      },
+    ]);
+  });
+
+  it('limite get_recent_sales à 20 par défaut et jamais plus de 50', async () => {
+    salesService.findAll.mockResolvedValue(
+      Array.from({ length: 60 }, (_, i) => ({
+        id: `sale-${i}`,
+        organizationId,
+        performedByUserId: 'user-1',
+        customerName: null,
+        customerPhone: null,
+        paymentMethod: 'CASH',
+        totalAmount: 1000,
+        createdAt: new Date('2026-07-01'),
+        items: [],
+      })),
+    );
+
+    const withDefault = await provider.getRecentSales(organizationId);
+    expect(withDefault).toHaveLength(20);
+
+    const withOversizedLimit = await provider.getRecentSales(organizationId, 500);
+    expect(withOversizedLimit).toHaveLength(50);
+  });
+
+  it('ne garde que les commandes fournisseurs en attente', async () => {
+    purchaseOrdersService.findAll.mockResolvedValue([
+      {
+        id: 'po-1',
+        organizationId,
+        supplierId: 'sup-1',
+        supplier: { id: 'sup-1', name: 'Fournisseur A' },
+        performedByUserId: 'user-1',
+        status: PurchaseOrderStatus.PENDING,
+        totalAmount: 5000,
+        createdAt: new Date('2026-07-01'),
+        receivedAt: null,
+        items: [],
+      },
+      {
+        id: 'po-2',
+        organizationId,
+        supplierId: 'sup-1',
+        supplier: { id: 'sup-1', name: 'Fournisseur A' },
+        performedByUserId: 'user-1',
+        status: PurchaseOrderStatus.RECEIVED,
+        totalAmount: 3000,
+        createdAt: new Date('2026-06-01'),
+        receivedAt: new Date('2026-06-05'),
+        items: [],
+      },
+    ]);
+
+    const result = await provider.getPendingPurchaseOrders(organizationId);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('po-1');
+    expect(result[0].status).toBe(PurchaseOrderStatus.PENDING);
+  });
+
+  it('normalise les fournisseurs', async () => {
+    suppliersService.findAll.mockResolvedValue([
+      {
+        id: 'sup-1',
+        organizationId,
+        name: 'Fournisseur A',
+        contactName: 'Jean',
+        phone: '+225000000',
+        email: null,
+        address: null,
+        createdAt: new Date('2026-07-01'),
+      },
+    ]);
+
+    const result = await provider.getSuppliers(organizationId);
+
+    expect(result).toEqual([
+      { id: 'sup-1', name: 'Fournisseur A', contactName: 'Jean', phone: '+225000000', email: null },
+    ]);
+  });
+});

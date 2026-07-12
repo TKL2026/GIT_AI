@@ -1,0 +1,70 @@
+export interface NormalizedProduct {
+  id: string;
+  name: string;
+  sku: string;
+  purchasePrice: number;
+  salePrice: number;
+  stockQuantity: number;
+  minStock: number | null;
+  maxStock: number | null;
+}
+
+export interface NormalizedSaleItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface NormalizedSale {
+  id: string;
+  customerName: string | null;
+  paymentMethod: string;
+  totalAmount: number;
+  items: NormalizedSaleItem[];
+  createdAt: string;
+}
+
+export interface NormalizedPurchaseOrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  lineTotal: number;
+}
+
+export interface NormalizedPurchaseOrder {
+  id: string;
+  supplierName: string;
+  status: string;
+  totalAmount: number;
+  items: NormalizedPurchaseOrderItem[];
+  createdAt: string;
+}
+
+export interface NormalizedSupplier {
+  id: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface NormalizedFinanceSummary {
+  totalRevenue: number;
+  totalExpenses: number;
+  totalCogs: number;
+  grossMargin: number;
+  netProfit: number;
+  salesCount: number;
+}
+
+export interface NormalizedProductProfitability {
+  productId: string;
+  productName: string;
+  quantitySold: number;
+  totalRevenue: number;
+  estimatedCost: number;
+  estimatedMargin: number;
+}

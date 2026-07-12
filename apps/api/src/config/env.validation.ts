@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsIn, IsInt, IsString, MinLength, validateSync } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, MinLength, validateSync } from 'class-validator';
 
 class EnvironmentVariables {
   @IsIn(['development', 'production', 'test'])
@@ -28,6 +28,11 @@ class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:5173';
+
+  /** Optionnel : sans clé, l'app démarre normalement, seules les routes /copilot répondent 503. */
+  @IsOptional()
+  @IsString()
+  ANTHROPIC_API_KEY?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

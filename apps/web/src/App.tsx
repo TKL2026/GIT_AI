@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AppLayout } from './layout/AppLayout';
+import { CopilotPage } from './pages/copilot/CopilotPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { FinancePage } from './pages/finance/FinancePage';
 import { LoginPage } from './pages/LoginPage';
@@ -28,6 +29,7 @@ export function App() {
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
           <Route path="/finance" element={<FinancePage />} />
+          <Route path="/copilot" element={<CopilotPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

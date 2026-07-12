@@ -7,6 +7,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { validateEnv } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { CopilotModule } from './modules/copilot/copilot.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
@@ -35,6 +36,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SuppliersModule,
     PurchasesModule,
     FinanceModule,
+    CopilotModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

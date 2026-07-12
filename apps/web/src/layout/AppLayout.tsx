@@ -5,6 +5,7 @@ import {
   IconChevronDown,
   IconLayoutDashboard,
   IconLogout,
+  IconMessageChatbot,
   IconPackage,
   IconReceipt,
   IconReportMoney,
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
+  { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },
 ];
 
 export function AppLayout() {

@@ -131,6 +131,13 @@ export interface ProductProfitabilityDto {
   estimatedMargin: number;
 }
 
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessageDto {
+  role: ChatRole;
+  content: string;
+}
+
 export interface AuthTokensDto {
   accessToken: string;
   refreshToken: string;

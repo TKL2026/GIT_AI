@@ -1,0 +1,67 @@
+import Anthropic from '@anthropic-ai/sdk';
+
+const dateRangeProperties = {
+  from: {
+    type: 'string' as const,
+    description: 'Date de début au format ISO 8601 (ex: 2026-07-01). Optionnel.',
+  },
+  to: {
+    type: 'string' as const,
+    description: 'Date de fin au format ISO 8601 (ex: 2026-07-31). Optionnel.',
+  },
+};
+
+export const COPILOT_TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'get_finance_summary',
+    description:
+      "Renvoie le résumé financier de l'entreprise sur une période : chiffre d'affaires, dépenses, coût des marchandises vendues, marge brute, bénéfice net, nombre de ventes.",
+    input_schema: {
+      type: 'object',
+      properties: dateRangeProperties,
+    },
+  },
+  {
+    name: 'get_products_profitability',
+    description:
+      'Renvoie, pour chaque produit vendu sur la période, la quantité vendue, le chiffre d’affaires, le coût estimé et la marge estimée, triés par marge décroissante.',
+    input_schema: {
+      type: 'object',
+      properties: dateRangeProperties,
+    },
+  },
+  {
+    name: 'get_stock_alerts',
+    description:
+      'Renvoie les produits dont la quantité en stock est en dessous (ou égale) de leur seuil minimum — risques de rupture.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_products',
+    description: "Renvoie le catalogue complet des produits avec prix d'achat, prix de vente et quantité en stock.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_recent_sales',
+    description: 'Renvoie les ventes les plus récentes de l’entreprise, avec le détail des articles vendus.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de ventes à renvoyer (défaut 20, max 50).',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_pending_purchase_orders',
+    description: "Renvoie les commandes fournisseurs actuellement en attente de réception.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_suppliers',
+    description: "Renvoie la liste des fournisseurs de l'entreprise.",
+    input_schema: { type: 'object', properties: {} },
+  },
+];
