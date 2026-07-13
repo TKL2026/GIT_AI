@@ -90,4 +90,38 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: 'get_products_to_push',
+    description:
+      "Renvoie les produits rentables (marge positive), en stock, mais sans aucune vente sur les 30 derniers jours — des opportunités à mettre en avant auprès des clients. Triés par marge par unité décroissante.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_customer_insights',
+    description:
+      "Renvoie les clients identifiés (par téléphone ou nom renseigné à la vente), avec leur dépense totale, leur nombre d'achats et le nombre de jours depuis leur dernier achat. Triés par dépense décroissante. Utile pour identifier les meilleurs clients ou ceux à relancer (nombre de jours depuis le dernier achat élevé alors qu'ils ont déjà acheté plusieurs fois).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de clients à renvoyer (défaut 10, maximum 20).',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_cross_sell_opportunities',
+    description:
+      "Renvoie les paires de produits fréquemment achetés ensemble (au moins 2 fois) sur les 90 derniers jours, triées par fréquence de co-achat décroissante. Utile pour suggérer des ventes croisées ('les clients qui achètent X achètent souvent aussi Y').",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de paires à renvoyer (défaut 10, maximum 20).',
+        },
+      },
+    },
+  },
 ];

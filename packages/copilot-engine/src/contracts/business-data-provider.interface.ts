@@ -1,9 +1,12 @@
 import {
+  NormalizedCrossSellPair,
+  NormalizedCustomerInsight,
   NormalizedFinanceSummary,
   NormalizedFraudAnomaly,
   NormalizedMonthlyFinanceTrend,
   NormalizedProduct,
   NormalizedProductProfitability,
+  NormalizedProductToPush,
   NormalizedPurchaseOrder,
   NormalizedSale,
   NormalizedStockForecast,
@@ -40,4 +43,10 @@ export interface BusinessDataProvider {
   getFraudAnomalies(tenantId: string): Promise<NormalizedFraudAnomaly[]>;
 
   getMonthlyFinanceTrend(tenantId: string, monthsBack?: number): Promise<NormalizedMonthlyFinanceTrend[]>;
+
+  getProductsToPush(tenantId: string): Promise<NormalizedProductToPush[]>;
+
+  getCustomerInsights(tenantId: string, limit?: number): Promise<NormalizedCustomerInsight[]>;
+
+  getCrossSellOpportunities(tenantId: string, limit?: number): Promise<NormalizedCrossSellPair[]>;
 }

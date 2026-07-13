@@ -7,6 +7,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { validateEnv } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { CommercialModule } from './modules/commercial/commercial.module';
 import { CopilotModule } from './modules/copilot/copilot.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
@@ -40,6 +41,7 @@ import { PrismaModule } from './prisma/prisma.module';
     FinanceModule,
     ForecastModule,
     FraudModule,
+    CommercialModule,
     CopilotModule,
   ],
   providers: [

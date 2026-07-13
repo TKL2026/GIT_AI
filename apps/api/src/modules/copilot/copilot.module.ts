@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CommercialModule } from '../commercial/commercial.module';
 import { FinanceModule } from '../finance/finance.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { FraudModule } from '../fraud/fraud.module';
@@ -21,6 +22,7 @@ import { ErpDataProvider } from './erp-data-provider';
     FinanceModule,
     ForecastModule,
     FraudModule,
+    CommercialModule,
   ],
   controllers: [CopilotController],
   providers: [ErpDataProvider, CopilotService],

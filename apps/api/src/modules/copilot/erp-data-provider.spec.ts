@@ -1,4 +1,5 @@
 import { PurchaseOrderStatus } from '@prisma/client';
+import { CommercialService } from '../commercial/commercial.service';
 import { FinanceService } from '../finance/finance.service';
 import { ForecastService } from '../forecast/forecast.service';
 import { FraudService } from '../fraud/fraud.service';
@@ -24,6 +25,11 @@ describe('ErpDataProvider', () => {
   };
   let forecastService: { getReplenishmentForecast: jest.Mock };
   let fraudService: { getAnomalies: jest.Mock };
+  let commercialService: {
+    getProductsToPush: jest.Mock;
+    getCustomerInsights: jest.Mock;
+    getCrossSellOpportunities: jest.Mock;
+  };
   let provider: ErpDataProvider;
 
   const buildProduct = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -53,6 +59,11 @@ describe('ErpDataProvider', () => {
     };
     forecastService = { getReplenishmentForecast: jest.fn() };
     fraudService = { getAnomalies: jest.fn() };
+    commercialService = {
+      getProductsToPush: jest.fn(),
+      getCustomerInsights: jest.fn(),
+      getCrossSellOpportunities: jest.fn(),
+    };
 
     provider = new ErpDataProvider(
       productsService as unknown as ProductsService,
@@ -63,7 +74,44 @@ describe('ErpDataProvider', () => {
       financeService as unknown as FinanceService,
       forecastService as unknown as ForecastService,
       fraudService as unknown as FraudService,
+      commercialService as unknown as CommercialService,
     );
+  });
+
+  it('transmet tenantId à CommercialService.getProductsToPush', async () => {
+    const products = [
+      { productId: 'p1', productName: 'Riz', marginPerUnit: 3000, stockQuantity: 10, description: '...' },
+    ];
+    commercialService.getProductsToPush.mockResolvedValue(products);
+
+    const result = await provider.getProductsToPush(organizationId);
+
+    expect(commercialService.getProductsToPush).toHaveBeenCalledWith(organizationId);
+    expect(result).toEqual(products);
+  });
+
+  it('transmet tenantId/limit à CommercialService.getCustomerInsights', async () => {
+    const customers = [
+      { customerLabel: '+225000', totalSpent: 15000, purchaseCount: 2, lastPurchaseAt: '2026-07-05', daysSinceLastPurchase: 5 },
+    ];
+    commercialService.getCustomerInsights.mockResolvedValue(customers);
+
+    const result = await provider.getCustomerInsights(organizationId, 5);
+
+    expect(commercialService.getCustomerInsights).toHaveBeenCalledWith(organizationId, 5);
+    expect(result).toEqual(customers);
+  });
+
+  it('transmet tenantId/limit à CommercialService.getCrossSellOpportunities', async () => {
+    const pairs = [
+      { productAId: 'p1', productAName: 'Riz', productBId: 'p2', productBName: 'Huile', coOccurrenceCount: 3 },
+    ];
+    commercialService.getCrossSellOpportunities.mockResolvedValue(pairs);
+
+    const result = await provider.getCrossSellOpportunities(organizationId, 3);
+
+    expect(commercialService.getCrossSellOpportunities).toHaveBeenCalledWith(organizationId, 3);
+    expect(result).toEqual(pairs);
   });
 
   it('transmet tenantId/monthsBack à FinanceService.getMonthlyTrend', async () => {

@@ -104,3 +104,27 @@ export interface NormalizedMonthlyFinanceTrend {
   netMarginRatio: number | null;
   revenueGrowthRatio: number | null;
 }
+
+export interface NormalizedProductToPush {
+  productId: string;
+  productName: string;
+  marginPerUnit: number;
+  stockQuantity: number;
+  description: string;
+}
+
+export interface NormalizedCustomerInsight {
+  customerLabel: string;
+  totalSpent: number;
+  purchaseCount: number;
+  lastPurchaseAt: string;
+  daysSinceLastPurchase: number;
+}
+
+export interface NormalizedCrossSellPair {
+  productAId: string;
+  productAName: string;
+  productBId: string;
+  productBName: string;
+  coOccurrenceCount: number;
+}

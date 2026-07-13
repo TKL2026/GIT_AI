@@ -115,6 +115,16 @@ export class CopilotEngine {
         const months = typeof params.months === 'number' ? params.months : undefined;
         return JSON.stringify(await this.dataProvider.getMonthlyFinanceTrend(tenantId, months));
       }
+      case 'get_products_to_push':
+        return JSON.stringify(await this.dataProvider.getProductsToPush(tenantId));
+      case 'get_customer_insights': {
+        const limit = typeof params.limit === 'number' ? params.limit : undefined;
+        return JSON.stringify(await this.dataProvider.getCustomerInsights(tenantId, limit));
+      }
+      case 'get_cross_sell_opportunities': {
+        const limit = typeof params.limit === 'number' ? params.limit : undefined;
+        return JSON.stringify(await this.dataProvider.getCrossSellOpportunities(tenantId, limit));
+      }
       default:
         return JSON.stringify({ error: `Outil inconnu: ${name}` });
     }

@@ -40,6 +40,9 @@ function buildDataProvider(overrides: Partial<BusinessDataProvider> = {}): jest.
     getReplenishmentForecast: jest.fn(),
     getFraudAnomalies: jest.fn(),
     getMonthlyFinanceTrend: jest.fn(),
+    getProductsToPush: jest.fn(),
+    getCustomerInsights: jest.fn(),
+    getCrossSellOpportunities: jest.fn(),
     ...overrides,
   } as jest.Mocked<BusinessDataProvider>;
 }
@@ -181,6 +184,49 @@ describe('CopilotEngine', () => {
 
     expect(dataProvider.getMonthlyFinanceTrend).toHaveBeenCalledWith('org-1', 3);
     expect(reply).toBe('Le CA progresse sur la période.');
+  });
+
+  it('route get_products_to_push vers dataProvider.getProductsToPush', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_products_to_push', {}))
+      .mockResolvedValueOnce(textMessage('Pousse le riz, il a une bonne marge.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({ getProductsToPush: jest.fn().mockResolvedValue([]) });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je pousser ?' }]);
+
+    expect(dataProvider.getProductsToPush).toHaveBeenCalledWith('org-1');
+    expect(reply).toBe('Pousse le riz, il a une bonne marge.');
+  });
+
+  it('route get_customer_insights vers dataProvider.getCustomerInsights avec le paramètre limit', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_customer_insights', { limit: 5 }))
+      .mockResolvedValueOnce(textMessage('Voici tes meilleurs clients.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({ getCustomerInsights: jest.fn().mockResolvedValue([]) });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    await engine.chat('org-1', [{ role: 'user', content: 'Qui sont mes meilleurs clients ?' }]);
+
+    expect(dataProvider.getCustomerInsights).toHaveBeenCalledWith('org-1', 5);
+  });
+
+  it('route get_cross_sell_opportunities vers dataProvider.getCrossSellOpportunities avec le paramètre limit', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_cross_sell_opportunities', { limit: 3 }))
+      .mockResolvedValueOnce(textMessage('Riz et huile sont souvent achetés ensemble.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({ getCrossSellOpportunities: jest.fn().mockResolvedValue([]) });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    await engine.chat('org-1', [{ role: 'user', content: 'Quelles ventes croisées ?' }]);
+
+    expect(dataProvider.getCrossSellOpportunities).toHaveBeenCalledWith('org-1', 3);
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {

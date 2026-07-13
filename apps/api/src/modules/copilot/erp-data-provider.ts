@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PurchaseOrderStatus } from '@prisma/client';
 import {
   BusinessDataProvider,
+  NormalizedCrossSellPair,
+  NormalizedCustomerInsight,
   NormalizedFinanceSummary,
   NormalizedFraudAnomaly,
   NormalizedMonthlyFinanceTrend,
   NormalizedProduct,
   NormalizedProductProfitability,
+  NormalizedProductToPush,
   NormalizedPurchaseOrder,
   NormalizedSale,
   NormalizedStockForecast,
@@ -24,6 +27,7 @@ import { SuppliersService } from '../suppliers/suppliers.service';
 import { FinanceService } from '../finance/finance.service';
 import { ForecastService } from '../forecast/forecast.service';
 import { FraudService } from '../fraud/fraud.service';
+import { CommercialService } from '../commercial/commercial.service';
 
 const DEFAULT_RECENT_SALES_LIMIT = 20;
 const MAX_RECENT_SALES_LIMIT = 50;
@@ -46,6 +50,7 @@ export class ErpDataProvider implements BusinessDataProvider {
     private readonly financeService: FinanceService,
     private readonly forecastService: ForecastService,
     private readonly fraudService: FraudService,
+    private readonly commercialService: CommercialService,
   ) {}
 
   getFinanceSummary(tenantId: string, from?: string, to?: string): Promise<NormalizedFinanceSummary> {
@@ -98,6 +103,18 @@ export class ErpDataProvider implements BusinessDataProvider {
 
   getMonthlyFinanceTrend(tenantId: string, monthsBack?: number): Promise<NormalizedMonthlyFinanceTrend[]> {
     return this.financeService.getMonthlyTrend(tenantId, monthsBack);
+  }
+
+  getProductsToPush(tenantId: string): Promise<NormalizedProductToPush[]> {
+    return this.commercialService.getProductsToPush(tenantId);
+  }
+
+  getCustomerInsights(tenantId: string, limit?: number): Promise<NormalizedCustomerInsight[]> {
+    return this.commercialService.getCustomerInsights(tenantId, limit);
+  }
+
+  getCrossSellOpportunities(tenantId: string, limit?: number): Promise<NormalizedCrossSellPair[]> {
+    return this.commercialService.getCrossSellOpportunities(tenantId, limit);
   }
 }
 
