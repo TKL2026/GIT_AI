@@ -1,6 +1,7 @@
 import { Card, SimpleGrid, Text, Title } from '@mantine/core';
 import {
   IconBoxSeam,
+  IconBriefcase,
   IconMessageChatbot,
   IconPackage,
   IconReceipt,
@@ -30,6 +31,12 @@ const SHORTCUTS = [
     label: 'Ventes',
     description: 'Enregistrement des ventes et historique',
     icon: IconReceipt,
+  },
+  {
+    to: '/commercial',
+    label: 'Commercial',
+    description: 'Produits à pousser, clients et ventes croisées',
+    icon: IconBriefcase,
   },
   {
     to: '/purchases',

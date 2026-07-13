@@ -2,6 +2,7 @@ import { AppShell, Burger, Group, Menu, NavLink, Stack, Text, Title, UnstyledBut
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconBoxSeam,
+  IconBriefcase,
   IconChevronDown,
   IconLayoutDashboard,
   IconLogout,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/products', label: 'Produits', icon: IconPackage },
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
+  { to: '/commercial', label: 'Commercial', icon: IconBriefcase },
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
   { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },

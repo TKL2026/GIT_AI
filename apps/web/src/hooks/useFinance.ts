@@ -14,3 +14,10 @@ export function useProductsProfitability(from?: string, to?: string) {
     queryFn: () => financeApi.getProductsProfitability({ from, to }),
   });
 }
+
+export function useMonthlyTrend(months?: number) {
+  return useQuery({
+    queryKey: ['finance', 'monthly-trend', months ?? null],
+    queryFn: () => financeApi.getMonthlyTrend(months),
+  });
+}

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AppLayout } from './layout/AppLayout';
+import { CommercialPage } from './pages/commercial/CommercialPage';
 import { CopilotPage } from './pages/copilot/CopilotPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { FinancePage } from './pages/finance/FinancePage';
@@ -27,6 +28,7 @@ export function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/stock" element={<StockPage />} />
           <Route path="/sales" element={<SalesPage />} />
+          <Route path="/commercial" element={<CommercialPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/copilot" element={<CopilotPage />} />

@@ -1,4 +1,4 @@
-import type { FinanceSummaryDto, ProductProfitabilityDto } from '@copilote/shared';
+import type { FinanceSummaryDto, MonthlyFinanceTrendDto, ProductProfitabilityDto } from '@copilote/shared';
 import { apiClient, toQueryString } from '../lib/apiClient';
 
 export interface FinanceQuery {
@@ -13,5 +13,10 @@ export const financeApi = {
   getProductsProfitability: (query: FinanceQuery) =>
     apiClient.get<ProductProfitabilityDto[]>(
       `/finance/products-profitability${toQueryString(query)}`,
+    ),
+
+  getMonthlyTrend: (months?: number) =>
+    apiClient.get<MonthlyFinanceTrendDto[]>(
+      `/finance/monthly-trend${toQueryString({ months: months?.toString() })}`,
     ),
 };

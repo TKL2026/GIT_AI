@@ -17,3 +17,8 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
 export function formatDate(date: string | Date): string {
   return dateFormatter.format(new Date(date));
 }
+
+export function formatPercent(value: number | null): string {
+  if (value === null) return '—';
+  return `${(value * 100).toFixed(1)} %`;
+}

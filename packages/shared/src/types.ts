@@ -131,6 +131,66 @@ export interface ProductProfitabilityDto {
   estimatedMargin: number;
 }
 
+export interface StockForecastDto {
+  productId: string;
+  productName: string;
+  currentStock: number;
+  averageDailySales: number;
+  daysUntilStockout: number | null;
+  recommendedReorderQuantity: number | null;
+}
+
+export type FraudAnomalyType = 'unexplained_stock_adjustment' | 'below_catalog_price_sale';
+export type FraudAnomalySeverity = 'medium' | 'high';
+
+export interface FraudAnomalyDto {
+  type: FraudAnomalyType;
+  severity: FraudAnomalySeverity;
+  productId: string;
+  productName: string;
+  performedByUserId: string | null;
+  occurrencesCount: number;
+  totalImpact: number;
+  description: string;
+}
+
+export interface MonthlyFinanceTrendDto {
+  month: string;
+  totalRevenue: number;
+  totalExpenses: number;
+  totalCogs: number;
+  grossMargin: number;
+  netProfit: number;
+  salesCount: number;
+  grossMarginRatio: number | null;
+  netMarginRatio: number | null;
+  revenueGrowthRatio: number | null;
+}
+
+export interface ProductToPushDto {
+  productId: string;
+  productName: string;
+  marginPerUnit: number;
+  stockQuantity: number;
+  description: string;
+}
+
+export interface CustomerInsightDto {
+  customerLabel: string;
+  totalSpent: number;
+  purchaseCount: number;
+  lastPurchaseAt: string;
+  daysSinceLastPurchase: number;
+}
+
+export interface CrossSellPairDto {
+  productAId: string;
+  productAName: string;
+  productBId: string;
+  productBName: string;
+  coOccurrenceCount: number;
+}
+
 export type ChatRole = 'user' | 'assistant';
 
 export interface ChatMessageDto {

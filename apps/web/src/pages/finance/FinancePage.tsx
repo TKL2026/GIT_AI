@@ -1,11 +1,13 @@
-import type { ExpenseDto, ProductProfitabilityDto } from '@copilote/shared';
+import type { ExpenseDto, FraudAnomalyDto, MonthlyFinanceTrendDto, ProductProfitabilityDto } from '@copilote/shared';
 import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Tabs } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconChartBar,
+  IconChartLine,
   IconPlus,
   IconReceipt2,
+  IconShieldExclamation,
   IconTrendingDown,
   IconTrendingUp,
 } from '@tabler/icons-react';
@@ -13,8 +15,9 @@ import { useState } from 'react';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { useExpenses } from '../../hooks/useExpenses';
-import { useFinanceSummary, useProductsProfitability } from '../../hooks/useFinance';
-import { formatCurrency, formatDate } from '../../lib/format';
+import { useFinanceSummary, useMonthlyTrend, useProductsProfitability } from '../../hooks/useFinance';
+import { useFraudAnomalies } from '../../hooks/useFraud';
+import { formatCurrency, formatDate, formatPercent } from '../../lib/format';
 import { EXPENSE_CATEGORY_LABELS } from '../../lib/labels';
 import { ExpenseFormModal } from './ExpenseFormModal';
 
@@ -52,6 +55,8 @@ export function FinancePage() {
   const { data: profitability = [], isLoading: isLoadingProfitability } =
     useProductsProfitability(from, to);
   const { data: expenses = [], isLoading: isLoadingExpenses } = useExpenses(from, to);
+  const { data: trend = [], isLoading: isLoadingTrend } = useMonthlyTrend();
+  const { data: anomalies = [], isLoading: isLoadingAnomalies } = useFraudAnomalies();
 
   const profitabilityColumns: DataTableColumn<ProductProfitabilityDto>[] = [
     { key: 'productName', label: 'Produit', render: (p) => p.productName },
@@ -104,6 +109,59 @@ export function FinancePage() {
     },
   ];
 
+  const trendColumns: DataTableColumn<MonthlyFinanceTrendDto>[] = [
+    { key: 'month', label: 'Mois', render: (t) => t.month },
+    { key: 'totalRevenue', label: "Chiffre d'affaires", textAlign: 'right', render: (t) => formatCurrency(t.totalRevenue) },
+    { key: 'totalExpenses', label: 'Dépenses', textAlign: 'right', render: (t) => formatCurrency(t.totalExpenses) },
+    { key: 'grossMarginRatio', label: 'Marge brute', textAlign: 'right', render: (t) => formatPercent(t.grossMarginRatio) },
+    {
+      key: 'netProfit',
+      label: 'Bénéfice net',
+      textAlign: 'right',
+      render: (t) => (
+        <Text c={t.netProfit >= 0 ? 'green' : 'red'} fw={600}>
+          {formatCurrency(t.netProfit)}
+        </Text>
+      ),
+    },
+    {
+      key: 'revenueGrowthRatio',
+      label: 'Croissance CA',
+      textAlign: 'right',
+      render: (t) =>
+        t.revenueGrowthRatio === null ? (
+          <Text size="sm" c="dimmed">—</Text>
+        ) : (
+          <Text c={t.revenueGrowthRatio >= 0 ? 'green' : 'red'} fw={600}>
+            {formatPercent(t.revenueGrowthRatio)}
+          </Text>
+        ),
+    },
+  ];
+
+  const anomalyColumns: DataTableColumn<FraudAnomalyDto>[] = [
+    {
+      key: 'severity',
+      label: 'Sévérité',
+      render: (a) => (
+        <Badge color={a.severity === 'high' ? 'red' : 'orange'} variant="light">
+          {a.severity === 'high' ? 'Élevée' : 'Moyenne'}
+        </Badge>
+      ),
+    },
+    { key: 'productName', label: 'Produit', render: (a) => a.productName },
+    {
+      key: 'description',
+      label: 'Description',
+      render: (a) => (
+        <Text size="sm" c="dimmed">
+          {a.description}
+        </Text>
+      ),
+    },
+    { key: 'occurrencesCount', label: 'Occurrences', textAlign: 'right', render: (a) => a.occurrencesCount },
+  ];
+
   return (
     <>
       <PageHeader title="Finance" description="Marges, bénéfices et rentabilité" />
@@ -132,6 +190,12 @@ export function FinancePage() {
           </Tabs.Tab>
           <Tabs.Tab value="expenses" leftSection={<IconReceipt2 size={16} />}>
             Dépenses
+          </Tabs.Tab>
+          <Tabs.Tab value="trend" leftSection={<IconChartLine size={16} />}>
+            Tendances
+          </Tabs.Tab>
+          <Tabs.Tab value="anomalies" leftSection={<IconShieldExclamation size={16} />}>
+            Anomalies {anomalies.length > 0 && `(${anomalies.length})`}
           </Tabs.Tab>
         </Tabs.List>
 
@@ -211,6 +275,29 @@ export function FinancePage() {
             rowKey={(e) => e.id}
             isLoading={isLoadingExpenses}
             emptyMessage="Aucune dépense enregistrée sur la période sélectionnée."
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="trend" pt="md">
+          <DataTable
+            columns={trendColumns}
+            rows={trend}
+            rowKey={(t) => t.month}
+            isLoading={isLoadingTrend}
+            emptyMessage="Pas assez de données pour calculer une tendance."
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="anomalies" pt="md">
+          <Text size="sm" c="dimmed" mb="sm">
+            Ce sont des signaux statistiques à vérifier, pas des preuves de fraude.
+          </Text>
+          <DataTable
+            columns={anomalyColumns}
+            rows={anomalies}
+            rowKey={(a) => `${a.type}-${a.productId}-${a.performedByUserId ?? 'anon'}`}
+            isLoading={isLoadingAnomalies}
+            emptyMessage="Aucune anomalie détectée."
           />
         </Tabs.Panel>
       </Tabs>
