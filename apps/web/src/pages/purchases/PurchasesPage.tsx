@@ -1,9 +1,10 @@
-import type { PurchaseOrderDto, SupplierDto } from '@copilote/shared';
+import type { PurchaseOrderDto, PurchaseRecommendationDto, SupplierDto } from '@copilote/shared';
 import { Badge, Button, Menu, Tabs, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   IconBuildingWarehouse,
+  IconBulb,
   IconDotsVertical,
   IconPackageImport,
   IconPlus,
@@ -15,6 +16,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { hasRole, STOCK_MUTATION_ROLES, SUPPLIER_MUTATION_ROLES } from '../../auth/roles';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
+import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
 import { useCancelPurchaseOrder, usePurchaseOrders, useReceivePurchaseOrder } from '../../hooks/usePurchases';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import { ApiError } from '../../lib/apiClient';
@@ -28,6 +30,7 @@ export function PurchasesPage() {
   const { user } = useAuth();
   const { data: orders = [], isLoading: isLoadingOrders } = usePurchaseOrders();
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
+  const { data: recommendations = [], isLoading: isLoadingRecommendations } = usePurchaseRecommendations();
   const receiveOrder = useReceivePurchaseOrder();
   const cancelOrder = useCancelPurchaseOrder();
 
@@ -132,6 +135,44 @@ export function PurchasesPage() {
     },
   ];
 
+  const recommendationColumns: DataTableColumn<PurchaseRecommendationDto>[] = [
+    { key: 'productName', label: 'Produit', render: (r) => r.productName },
+    { key: 'recommendedQuantity', label: 'Qté recommandée', textAlign: 'right', render: (r) => r.recommendedQuantity },
+    {
+      key: 'daysUntilStockout',
+      label: 'Jours avant rupture',
+      textAlign: 'right',
+      render: (r) =>
+        r.daysUntilStockout === null ? (
+          <Text size="sm" c="dimmed">—</Text>
+        ) : (
+          <Text
+            size="sm"
+            fw={600}
+            c={r.daysUntilStockout < 7 ? 'red' : r.daysUntilStockout < 14 ? 'orange' : undefined}
+          >
+            {r.daysUntilStockout}
+          </Text>
+        ),
+    },
+    {
+      key: 'recommendedSupplierName',
+      label: 'Fournisseur recommandé',
+      render: (r) =>
+        r.hasSupplierHistory ? (
+          r.recommendedSupplierName
+        ) : (
+          <Badge color="gray" variant="light">À sourcer</Badge>
+        ),
+    },
+    {
+      key: 'lastUnitCost',
+      label: 'Dernier coût unitaire',
+      textAlign: 'right',
+      render: (r) => (r.lastUnitCost === null ? '—' : formatCurrency(r.lastUnitCost)),
+    },
+  ];
+
   return (
     <>
       <PageHeader title="Achats" description="Fournisseurs et commandes d'approvisionnement" />
@@ -143,6 +184,9 @@ export function PurchasesPage() {
           </Tabs.Tab>
           <Tabs.Tab value="suppliers" leftSection={<IconBuildingWarehouse size={16} />}>
             Fournisseurs
+          </Tabs.Tab>
+          <Tabs.Tab value="recommendations" leftSection={<IconBulb size={16} />}>
+            Recommandations
           </Tabs.Tab>
         </Tabs.List>
 
@@ -183,6 +227,20 @@ export function PurchasesPage() {
             rowKey={(s) => s.id}
             isLoading={isLoadingSuppliers}
             emptyMessage="Aucun fournisseur enregistré pour le moment."
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="recommendations" pt="md">
+          <Text size="sm" c="dimmed" mb="sm">
+            Calculé à partir de la prévision de réapprovisionnement et de l'historique des commandes
+            fournisseurs. Le fournisseur suggéré est le moins cher parmi ceux ayant déjà fourni ce produit.
+          </Text>
+          <DataTable
+            columns={recommendationColumns}
+            rows={recommendations}
+            rowKey={(r) => r.productId}
+            isLoading={isLoadingRecommendations}
+            emptyMessage="Rien à commander pour le moment."
           />
         </Tabs.Panel>
       </Tabs>

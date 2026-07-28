@@ -191,6 +191,18 @@ export interface CrossSellPairDto {
   coOccurrenceCount: number;
 }
 
+export interface PurchaseRecommendationDto {
+  productId: string;
+  productName: string;
+  recommendedQuantity: number;
+  daysUntilStockout: number | null;
+  recommendedSupplierId: string | null;
+  recommendedSupplierName: string | null;
+  lastUnitCost: number | null;
+  alternativeSupplierCount: number;
+  hasSupplierHistory: boolean;
+}
+
 export type ChatRole = 'user' | 'assistant';
 
 export interface ChatMessageDto {
