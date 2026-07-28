@@ -1,5 +1,5 @@
 import type { ExpenseDto, FraudAnomalyDto, MonthlyFinanceTrendDto, ProductProfitabilityDto } from '@copilote/shared';
-import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Tabs } from '@mantine/core';
+import { Badge, Button, Group, SimpleGrid, Stack, Text, Tabs } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -14,33 +14,13 @@ import {
 import { useState } from 'react';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
+import { StatCard } from '../../components/StatCard';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useFinanceSummary, useMonthlyTrend, useProductsProfitability } from '../../hooks/useFinance';
 import { useFraudAnomalies } from '../../hooks/useFraud';
 import { formatCurrency, formatDate, formatPercent } from '../../lib/format';
 import { EXPENSE_CATEGORY_LABELS } from '../../lib/labels';
 import { ExpenseFormModal } from './ExpenseFormModal';
-
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <Card withBorder padding="lg" radius="md">
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-      <Text size="xl" fw={700} c={color}>
-        {value}
-      </Text>
-    </Card>
-  );
-}
 
 export function FinancePage() {
   const [fromDate, setFromDate] = useState<Date | null>(null);

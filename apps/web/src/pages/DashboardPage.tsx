@@ -12,6 +12,13 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { FINANCE_ROLES, hasRole } from '../auth/roles';
 import { PageHeader } from '../components/PageHeader';
+import { StatCard } from '../components/StatCard';
+import { useMonthlyTrend } from '../hooks/useFinance';
+import { useReplenishmentForecast } from '../hooks/useForecast';
+import { useFraudAnomalies } from '../hooks/useFraud';
+import { usePurchaseOrders } from '../hooks/usePurchases';
+import { useStockAlerts } from '../hooks/useStock';
+import { formatCurrency } from '../lib/format';
 
 const SHORTCUTS = [
   {
@@ -62,7 +69,18 @@ const SHORTCUTS = [
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const canSeeFinance = hasRole(user, FINANCE_ROLES);
   const visibleShortcuts = SHORTCUTS.filter((s) => !s.roles || hasRole(user, s.roles));
+
+  const { data: trend } = useMonthlyTrend(1);
+  const { data: alerts = [] } = useStockAlerts();
+  const { data: forecast = [] } = useReplenishmentForecast();
+  const { data: anomalies = [] } = useFraudAnomalies();
+  const { data: purchaseOrders = [] } = usePurchaseOrders();
+
+  const currentMonth = trend?.[0];
+  const productsToReorder = forecast.filter((f) => (f.recommendedReorderQuantity ?? 0) > 0).length;
+  const pendingOrders = purchaseOrders.filter((o) => o.status === 'PENDING').length;
 
   return (
     <>
@@ -70,6 +88,52 @@ export function DashboardPage() {
         title="Tableau de bord"
         description={`Bienvenue ${user?.firstName} ${user?.lastName} — ${user?.role}`}
       />
+
+      <Title order={4} mb="sm">
+        Vue d'ensemble
+      </Title>
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} mb="xl">
+        {canSeeFinance && (
+          <StatCard
+            to="/finance"
+            label="Chiffre d'affaires (mois en cours)"
+            value={currentMonth ? formatCurrency(currentMonth.totalRevenue) : '—'}
+          />
+        )}
+        {canSeeFinance && (
+          <StatCard
+            to="/finance"
+            label="Bénéfice net (mois en cours)"
+            value={currentMonth ? formatCurrency(currentMonth.netProfit) : '—'}
+            color={currentMonth ? (currentMonth.netProfit >= 0 ? 'green' : 'red') : undefined}
+          />
+        )}
+        <StatCard
+          to="/stock"
+          label="Produits en alerte de stock"
+          value={String(alerts.length)}
+          color={alerts.length > 0 ? 'red' : undefined}
+        />
+        <StatCard
+          to="/stock"
+          label="Produits à réapprovisionner bientôt"
+          value={String(productsToReorder)}
+          color={productsToReorder > 0 ? 'orange' : undefined}
+        />
+        {canSeeFinance && (
+          <StatCard
+            to="/finance"
+            label="Anomalies détectées"
+            value={String(anomalies.length)}
+            color={anomalies.length > 0 ? 'red' : undefined}
+          />
+        )}
+        <StatCard
+          to="/purchases"
+          label="Commandes fournisseurs en attente"
+          value={String(pendingOrders)}
+        />
+      </SimpleGrid>
 
       <Title order={4} mb="sm">
         Accès rapide
