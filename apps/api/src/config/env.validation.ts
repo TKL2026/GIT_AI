@@ -33,6 +33,23 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   ANTHROPIC_API_KEY?: string;
+
+  /** Optionnel : sans ces variables, l'app démarre normalement, seules les routes /whatsapp répondent 503. */
+  @IsOptional()
+  @IsString()
+  WHATSAPP_ACCESS_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_PHONE_NUMBER_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_BUSINESS_ACCOUNT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_NOTIFICATION_RECIPIENT?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

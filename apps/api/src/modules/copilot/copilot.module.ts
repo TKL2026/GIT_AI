@@ -26,5 +26,6 @@ import { ErpDataProvider } from './erp-data-provider';
   ],
   controllers: [CopilotController],
   providers: [ErpDataProvider, CopilotService],
+  exports: [CopilotService],
 })
 export class CopilotModule {}

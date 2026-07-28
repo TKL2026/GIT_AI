@@ -20,6 +20,7 @@ import { SalesModule } from './modules/sales/sales.module';
 import { StockModule } from './modules/stock/stock.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { UsersModule } from './modules/users/users.module';
+import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -43,6 +44,7 @@ import { PrismaModule } from './prisma/prisma.module';
     FraudModule,
     CommercialModule,
     CopilotModule,
+    WhatsAppModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

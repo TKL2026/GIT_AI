@@ -12,11 +12,18 @@ import {
   TypographyStylesProvider,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconMessageChatbot, IconReportAnalytics, IconSend, IconTrash } from '@tabler/icons-react';
+import {
+  IconBrandWhatsapp,
+  IconMessageChatbot,
+  IconReportAnalytics,
+  IconSend,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PageHeader } from '../../components/PageHeader';
 import { useCopilotChat, useDailyReport } from '../../hooks/useCopilot';
+import { useSendWhatsAppDailyReport } from '../../hooks/useWhatsApp';
 import { ApiError } from '../../lib/apiClient';
 
 const SUGGESTIONS = [
@@ -33,7 +40,8 @@ export function CopilotPage() {
 
   const chat = useCopilotChat();
   const dailyReport = useDailyReport();
-  const isBusy = chat.isPending || dailyReport.isPending;
+  const sendWhatsAppReport = useSendWhatsAppDailyReport();
+  const isBusy = chat.isPending || dailyReport.isPending || sendWhatsAppReport.isPending;
 
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
@@ -77,6 +85,21 @@ export function CopilotPage() {
     });
   }
 
+  function handleSendWhatsAppReport() {
+    if (isBusy) return;
+    sendWhatsAppReport.mutate(undefined, {
+      onSuccess: () => {
+        notifications.show({ color: 'green', message: 'Rapport du jour envoyé sur WhatsApp.' });
+      },
+      onError: (err) => {
+        notifications.show({
+          color: 'red',
+          message: err instanceof ApiError ? err.message : "Impossible d'envoyer le rapport sur WhatsApp.",
+        });
+      },
+    });
+  }
+
   return (
     <>
       <PageHeader
@@ -91,6 +114,15 @@ export function CopilotPage() {
               disabled={isBusy}
             >
               Rapport du jour
+            </Button>
+            <Button
+              variant="light"
+              color="green"
+              leftSection={<IconBrandWhatsapp size={16} />}
+              onClick={handleSendWhatsAppReport}
+              disabled={isBusy}
+            >
+              Envoyer par WhatsApp
             </Button>
             <Button
               variant="subtle"
