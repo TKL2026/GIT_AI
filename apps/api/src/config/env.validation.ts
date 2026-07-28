@@ -50,6 +50,19 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   WHATSAPP_NOTIFICATION_RECIPIENT?: string;
+
+  /** Optionnel : sans ces variables, le webhook /whatsapp/webhook répond 503/403. */
+  @IsOptional()
+  @IsString()
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_APP_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_INBOUND_ORGANIZATION_ID?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
