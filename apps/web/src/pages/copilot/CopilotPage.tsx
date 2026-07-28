@@ -167,7 +167,7 @@ export function CopilotPage() {
                 withBorder={message.role === 'assistant'}
                 p="sm"
                 radius="md"
-                bg={message.role === 'user' ? 'blue.6' : undefined}
+                bg={message.role === 'user' ? 'emerald.6' : undefined}
                 style={{
                   alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '80%',

@@ -1,4 +1,4 @@
-import { Card, SimpleGrid, Text, Title } from '@mantine/core';
+import { Card, Center, Loader, SimpleGrid, Text, Title } from '@mantine/core';
 import {
   IconBoxSeam,
   IconBriefcase,
@@ -72,11 +72,17 @@ export function DashboardPage() {
   const canSeeFinance = hasRole(user, FINANCE_ROLES);
   const visibleShortcuts = SHORTCUTS.filter((s) => !s.roles || hasRole(user, s.roles));
 
-  const { data: trend } = useMonthlyTrend(1);
-  const { data: alerts = [] } = useStockAlerts();
-  const { data: forecast = [] } = useReplenishmentForecast();
-  const { data: anomalies = [] } = useFraudAnomalies();
-  const { data: purchaseOrders = [] } = usePurchaseOrders();
+  const { data: trend, isLoading: isTrendLoading } = useMonthlyTrend(1, canSeeFinance);
+  const { data: alerts = [], isLoading: isAlertsLoading } = useStockAlerts();
+  const { data: forecast = [], isLoading: isForecastLoading } = useReplenishmentForecast();
+  const { data: anomalies = [], isLoading: isAnomaliesLoading } = useFraudAnomalies(canSeeFinance);
+  const { data: purchaseOrders = [], isLoading: isPurchaseOrdersLoading } = usePurchaseOrders();
+
+  const isLoading =
+    isAlertsLoading ||
+    isForecastLoading ||
+    isPurchaseOrdersLoading ||
+    (canSeeFinance && (isTrendLoading || isAnomaliesLoading));
 
   const currentMonth = trend?.[0];
   const productsToReorder = forecast.filter((f) => (f.recommendedReorderQuantity ?? 0) > 0).length;
@@ -92,6 +98,11 @@ export function DashboardPage() {
       <Title order={4} mb="sm">
         Vue d'ensemble
       </Title>
+      {isLoading ? (
+        <Center py="xl" mb="xl">
+          <Loader size="sm" />
+        </Center>
+      ) : (
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} mb="xl">
         {canSeeFinance && (
           <StatCard
@@ -134,6 +145,7 @@ export function DashboardPage() {
           value={String(pendingOrders)}
         />
       </SimpleGrid>
+      )}
 
       <Title order={4} mb="sm">
         Accès rapide

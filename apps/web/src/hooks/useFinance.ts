@@ -15,9 +15,10 @@ export function useProductsProfitability(from?: string, to?: string) {
   });
 }
 
-export function useMonthlyTrend(months?: number) {
+export function useMonthlyTrend(months?: number, enabled = true) {
   return useQuery({
     queryKey: ['finance', 'monthly-trend', months ?? null],
     queryFn: () => financeApi.getMonthlyTrend(months),
+    enabled,
   });
 }

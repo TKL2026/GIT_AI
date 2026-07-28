@@ -51,9 +51,10 @@ export function LoginPage() {
   return (
     <Center
       mih="100vh"
+      p="md"
       style={{ background: 'linear-gradient(160deg, var(--mantine-color-emerald-0) 0%, #ffffff 55%)' }}
     >
-      <Paper withBorder shadow="sm" radius="md" p="xl" w={380}>
+      <Paper withBorder shadow="sm" radius="md" p="xl" w="100%" maw={380}>
         <Stack gap="xs" mb="lg" align="center">
           <Logo size="lg" />
           <Text c="dimmed" size="sm" ta="center">
