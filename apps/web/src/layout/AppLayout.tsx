@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, Menu, NavLink, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { AppShell, Burger, Group, Menu, NavLink, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconBoxSeam,
@@ -15,6 +15,7 @@ import {
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { FINANCE_ROLES, hasRole } from '../auth/roles';
+import { Logo } from '../components/Logo';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', icon: IconLayoutDashboard },
@@ -43,7 +44,7 @@ export function AppLayout() {
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Title order={4}>Copilote IA Business</Title>
+            <Logo size="sm" />
           </Group>
 
           <Menu shadow="md" width={220} position="bottom-end">
@@ -86,7 +87,7 @@ export function AppLayout() {
         ))}
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main bg="gray.0">
         <Outlet />
       </AppShell.Main>
     </AppShell>

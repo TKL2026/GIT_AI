@@ -7,13 +7,13 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { Logo } from '../components/Logo';
 import { ApiError } from '../lib/apiClient';
 
 interface LoginFormValues {
@@ -49,12 +49,13 @@ export function LoginPage() {
   }
 
   return (
-    <Center mih="100vh" bg="gray.0">
+    <Center
+      mih="100vh"
+      style={{ background: 'linear-gradient(160deg, var(--mantine-color-emerald-0) 0%, #ffffff 55%)' }}
+    >
       <Paper withBorder shadow="sm" radius="md" p="xl" w={380}>
-        <Stack gap="xs" mb="lg">
-          <Title order={2} ta="center">
-            Copilote IA Business
-          </Title>
+        <Stack gap="xs" mb="lg" align="center">
+          <Logo size="lg" />
           <Text c="dimmed" size="sm" ta="center">
             Connectez-vous pour piloter votre entreprise
           </Text>
