@@ -11,6 +11,7 @@ import {
   NormalizedProductProfitability,
   NormalizedProductToPush,
   NormalizedPurchaseOrder,
+  NormalizedPurchaseRecommendation,
   NormalizedSale,
   NormalizedStockForecast,
   NormalizedSupplier,
@@ -28,6 +29,7 @@ import { FinanceService } from '../finance/finance.service';
 import { ForecastService } from '../forecast/forecast.service';
 import { FraudService } from '../fraud/fraud.service';
 import { CommercialService } from '../commercial/commercial.service';
+import { PurchasingService } from '../purchasing/purchasing.service';
 
 const DEFAULT_RECENT_SALES_LIMIT = 20;
 const MAX_RECENT_SALES_LIMIT = 50;
@@ -51,6 +53,7 @@ export class ErpDataProvider implements BusinessDataProvider {
     private readonly forecastService: ForecastService,
     private readonly fraudService: FraudService,
     private readonly commercialService: CommercialService,
+    private readonly purchasingService: PurchasingService,
   ) {}
 
   getFinanceSummary(tenantId: string, from?: string, to?: string): Promise<NormalizedFinanceSummary> {
@@ -115,6 +118,10 @@ export class ErpDataProvider implements BusinessDataProvider {
 
   getCrossSellOpportunities(tenantId: string, limit?: number): Promise<NormalizedCrossSellPair[]> {
     return this.commercialService.getCrossSellOpportunities(tenantId, limit);
+  }
+
+  getPurchaseRecommendations(tenantId: string): Promise<NormalizedPurchaseRecommendation[]> {
+    return this.purchasingService.getPurchaseRecommendations(tenantId);
   }
 }
 

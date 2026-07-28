@@ -16,6 +16,7 @@ import { HealthModule } from './modules/health/health.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
+import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { StockModule } from './modules/stock/stock.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
@@ -43,6 +44,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ForecastModule,
     FraudModule,
     CommercialModule,
+    PurchasingModule,
     CopilotModule,
     WhatsAppModule,
   ],

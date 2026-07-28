@@ -125,6 +125,8 @@ export class CopilotEngine {
         const limit = typeof params.limit === 'number' ? params.limit : undefined;
         return JSON.stringify(await this.dataProvider.getCrossSellOpportunities(tenantId, limit));
       }
+      case 'get_purchase_recommendations':
+        return JSON.stringify(await this.dataProvider.getPurchaseRecommendations(tenantId));
       default:
         return JSON.stringify({ error: `Outil inconnu: ${name}` });
     }

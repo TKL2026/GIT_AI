@@ -128,3 +128,15 @@ export interface NormalizedCrossSellPair {
   productBName: string;
   coOccurrenceCount: number;
 }
+
+export interface NormalizedPurchaseRecommendation {
+  productId: string;
+  productName: string;
+  recommendedQuantity: number;
+  daysUntilStockout: number | null;
+  recommendedSupplierId: string | null;
+  recommendedSupplierName: string | null;
+  lastUnitCost: number | null;
+  alternativeSupplierCount: number;
+  hasSupplierHistory: boolean;
+}

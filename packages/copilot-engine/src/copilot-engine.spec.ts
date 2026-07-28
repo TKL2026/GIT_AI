@@ -43,6 +43,7 @@ function buildDataProvider(overrides: Partial<BusinessDataProvider> = {}): jest.
     getProductsToPush: jest.fn(),
     getCustomerInsights: jest.fn(),
     getCrossSellOpportunities: jest.fn(),
+    getPurchaseRecommendations: jest.fn(),
     ...overrides,
   } as jest.Mocked<BusinessDataProvider>;
 }
@@ -227,6 +228,23 @@ describe('CopilotEngine', () => {
     await engine.chat('org-1', [{ role: 'user', content: 'Quelles ventes croisées ?' }]);
 
     expect(dataProvider.getCrossSellOpportunities).toHaveBeenCalledWith('org-1', 3);
+  });
+
+  it('route get_purchase_recommendations vers dataProvider.getPurchaseRecommendations', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(toolUseMessage('get_purchase_recommendations', {}))
+      .mockResolvedValueOnce(textMessage('Commande du riz chez le fournisseur A.'));
+    const client: AnthropicMessagesClient = { messages: { create } };
+    const dataProvider = buildDataProvider({
+      getPurchaseRecommendations: jest.fn().mockResolvedValue([]),
+    });
+
+    const engine = new CopilotEngine({ client, dataProvider });
+    const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je commander ?' }]);
+
+    expect(dataProvider.getPurchaseRecommendations).toHaveBeenCalledWith('org-1');
+    expect(reply).toBe('Commande du riz chez le fournisseur A.');
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {

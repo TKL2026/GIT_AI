@@ -8,6 +8,7 @@ import {
   NormalizedProductProfitability,
   NormalizedProductToPush,
   NormalizedPurchaseOrder,
+  NormalizedPurchaseRecommendation,
   NormalizedSale,
   NormalizedStockForecast,
   NormalizedSupplier,
@@ -49,4 +50,6 @@ export interface BusinessDataProvider {
   getCustomerInsights(tenantId: string, limit?: number): Promise<NormalizedCustomerInsight[]>;
 
   getCrossSellOpportunities(tenantId: string, limit?: number): Promise<NormalizedCrossSellPair[]>;
+
+  getPurchaseRecommendations(tenantId: string): Promise<NormalizedPurchaseRecommendation[]>;
 }

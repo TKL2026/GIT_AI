@@ -5,6 +5,7 @@ import { ForecastModule } from '../forecast/forecast.module';
 import { FraudModule } from '../fraud/fraud.module';
 import { ProductsModule } from '../products/products.module';
 import { PurchasesModule } from '../purchases/purchases.module';
+import { PurchasingModule } from '../purchasing/purchasing.module';
 import { SalesModule } from '../sales/sales.module';
 import { StockModule } from '../stock/stock.module';
 import { SuppliersModule } from '../suppliers/suppliers.module';
@@ -23,6 +24,7 @@ import { ErpDataProvider } from './erp-data-provider';
     ForecastModule,
     FraudModule,
     CommercialModule,
+    PurchasingModule,
   ],
   controllers: [CopilotController],
   providers: [ErpDataProvider, CopilotService],

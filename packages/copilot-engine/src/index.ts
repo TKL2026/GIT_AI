@@ -12,6 +12,7 @@ export {
   NormalizedProductToPush,
   NormalizedPurchaseOrder,
   NormalizedPurchaseOrderItem,
+  NormalizedPurchaseRecommendation,
   NormalizedSale,
   NormalizedSaleItem,
   NormalizedStockForecast,

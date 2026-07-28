@@ -124,4 +124,10 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: 'get_purchase_recommendations',
+    description:
+      "Renvoie, pour chaque produit à réapprovisionner (d'après la prévision), la quantité recommandée et le fournisseur suggéré (le moins cher parmi ceux ayant déjà fourni ce produit, d'après l'historique des commandes). Si aucun historique n'existe pour un produit, le signale explicitement (pas de fournisseur à deviner). Trié du plus urgent au moins urgent.",
+    input_schema: { type: 'object', properties: {} },
+  },
 ];

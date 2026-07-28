@@ -5,6 +5,7 @@ import { ForecastService } from '../forecast/forecast.service';
 import { FraudService } from '../fraud/fraud.service';
 import { ProductsService } from '../products/products.service';
 import { PurchaseOrdersService } from '../purchases/purchase-orders.service';
+import { PurchasingService } from '../purchasing/purchasing.service';
 import { SalesService } from '../sales/sales.service';
 import { StockService } from '../stock/stock.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
@@ -30,6 +31,7 @@ describe('ErpDataProvider', () => {
     getCustomerInsights: jest.Mock;
     getCrossSellOpportunities: jest.Mock;
   };
+  let purchasingService: { getPurchaseRecommendations: jest.Mock };
   let provider: ErpDataProvider;
 
   const buildProduct = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -64,6 +66,7 @@ describe('ErpDataProvider', () => {
       getCustomerInsights: jest.fn(),
       getCrossSellOpportunities: jest.fn(),
     };
+    purchasingService = { getPurchaseRecommendations: jest.fn() };
 
     provider = new ErpDataProvider(
       productsService as unknown as ProductsService,
@@ -75,7 +78,30 @@ describe('ErpDataProvider', () => {
       forecastService as unknown as ForecastService,
       fraudService as unknown as FraudService,
       commercialService as unknown as CommercialService,
+      purchasingService as unknown as PurchasingService,
     );
+  });
+
+  it('transmet tenantId à PurchasingService.getPurchaseRecommendations', async () => {
+    const recommendations = [
+      {
+        productId: 'p1',
+        productName: 'Riz',
+        recommendedQuantity: 30,
+        daysUntilStockout: 5,
+        recommendedSupplierId: 'sup-1',
+        recommendedSupplierName: 'Fournisseur A',
+        lastUnitCost: 1000,
+        alternativeSupplierCount: 0,
+        hasSupplierHistory: true,
+      },
+    ];
+    purchasingService.getPurchaseRecommendations.mockResolvedValue(recommendations);
+
+    const result = await provider.getPurchaseRecommendations(organizationId);
+
+    expect(purchasingService.getPurchaseRecommendations).toHaveBeenCalledWith(organizationId);
+    expect(result).toEqual(recommendations);
   });
 
   it('transmet tenantId à CommercialService.getProductsToPush', async () => {
