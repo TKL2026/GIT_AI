@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définissez un vrai mot de passe pour POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: ${POSTGRES_DB:-copilote_ia_business}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Pas de port publié : uniquement accessible depuis le réseau interne
+    # (le conteneur api). Pour un accès admin ponctuel, utilisez
+    # `docker compose -f docker-compose.prod.yml exec postgres psql -U postgres`.
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?Définissez DATABASE_URL dans .env}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Définissez JWT_ACCESS_SECRET dans .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Définissez JWT_REFRESH_SECRET dans .env}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Définissez CORS_ORIGIN dans .env avec votre domaine public}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID:-}
+      WHATSAPP_NOTIFICATION_RECIPIENT: ${WHATSAPP_NOTIFICATION_RECIPIENT:-}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_INBOUND_ORGANIZATION_ID: ${WHATSAPP_INBOUND_ORGANIZATION_ID:-}
+      CAMPAY_ENV: ${CAMPAY_ENV:-production}
+      CAMPAY_USERNAME: ${CAMPAY_USERNAME:-}
+      CAMPAY_PASSWORD: ${CAMPAY_PASSWORD:-}
+      CAMPAY_WEBHOOK_KEY: ${CAMPAY_WEBHOOK_KEY:-}
+      CAMPAY_BASE_URL: ${CAMPAY_BASE_URL:-}
+      DEMO_MODE_ENABLED: ${DEMO_MODE_ENABLED:-false}
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-}
+    expose:
+      - '3000'
+    # Applique les migrations en attente avant de démarrer (idempotent —
+    # sans effet s'il n'y a rien de nouveau à migrer).
+    command: sh -c "npx prisma migrate deploy && node dist/main"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+      args:
+        VITE_API_URL: /api
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      # Hôte interne que nginx reverse-proxy pour /api (voir nginx.conf.template).
+      API_UPSTREAM: api:3000
+    # Pas de "ports" ici : sous Coolify, le service est routé par son propre
+    # reverse proxy (Traefik/Caddy) via le champ "Domains" configuré dans
+    # l'interface Coolify pour ce service — port 80 par défaut, ce qui
+    # correspond exactement au nginx de ce conteneur. Publier un port hôte
+    # ici entrerait en conflit avec le proxy que Coolify gère lui-même.
+    expose:
+      - '80'
+
+volumes:
+  postgres_data:
