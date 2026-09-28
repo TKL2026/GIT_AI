@@ -1,0 +1,43 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # Reverse-proxy vers le conteneur API : le frontend appelle /api en même
+    # origine (VITE_API_URL=/api), aucune configuration CORS nécessaire en
+    # production. ${API_UPSTREAM} est injecté par docker-compose (ex: api:3000).
+    location /api/ {
+        proxy_pass http://${API_UPSTREAM}/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Headers de sécurité pour le contenu statique uniquement — l'API applique
+    # déjà les siens (helmet) sur /api, les dupliquer créerait des en-têtes en
+    # double dans les réponses proxifiées.
+    location / {
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header X-XSS-Protection "0" always;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /assets/ {
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header X-XSS-Protection "0" always;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
