@@ -12,3 +12,11 @@ if (!window.matchMedia) {
     dispatchEvent: () => false,
   });
 }
+
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

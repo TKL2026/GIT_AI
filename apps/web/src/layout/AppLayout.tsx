@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, Menu, NavLink, Stack, Text, UnstyledButton } from '@mantine/core';
+import { AppShell, Burger, Divider, Group, Menu, NavLink, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconBoxSeam,
@@ -11,14 +11,17 @@ import {
   IconReceipt,
   IconReportMoney,
   IconTruckDelivery,
+  IconUsers,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { FINANCE_ROLES, hasRole } from '../auth/roles';
+import { EmailVerificationBanner } from '../components/EmailVerificationBanner';
 import { Logo } from '../components/Logo';
+import { useOrganization } from '../hooks/useOrganization';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Tableau de bord', icon: IconLayoutDashboard },
+  { to: '/dashboard', label: 'Tableau de bord', icon: IconLayoutDashboard },
   { to: '/products', label: 'Produits', icon: IconPackage },
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
@@ -26,11 +29,17 @@ const NAV_ITEMS = [
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
   { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },
+  { to: '/users', label: 'Utilisateurs', icon: IconUsers },
 ];
+
+function isActive(pathname: string, to: string): boolean {
+  return to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
+}
 
 export function AppLayout() {
   const [opened, { toggle }] = useDisclosure();
   const { user, logout } = useAuth();
+  const { data: organization } = useOrganization();
   const location = useLocation();
   const visibleNavItems = NAV_ITEMS.filter((item) => !item.roles || hasRole(user, item.roles));
 
@@ -64,6 +73,12 @@ export function AppLayout() {
               </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>
+              {organization && (
+                <>
+                  <Menu.Label>{organization.name}</Menu.Label>
+                  <Divider />
+                </>
+              )}
               <Menu.Item leftSection={<IconLogout size={16} />} onClick={logout} color="red">
                 Se déconnecter
               </Menu.Item>
@@ -80,7 +95,7 @@ export function AppLayout() {
             to={item.to}
             label={item.label}
             leftSection={<item.icon size={18} />}
-            active={location.pathname === item.to}
+            active={isActive(location.pathname, item.to)}
             style={{ borderRadius: 8 }}
             mb={4}
           />
@@ -88,6 +103,7 @@ export function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main bg="gray.0">
+        <EmailVerificationBanner />
         <Outlet />
       </AppShell.Main>
     </AppShell>

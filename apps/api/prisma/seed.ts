@@ -8,7 +8,7 @@ async function main() {
     where: { name: 'Boutique Demo' },
   });
   if (existing) {
-    console.log('Seed already applied, skipping.');
+    console.log('Seed organisation démo déjà appliqué, ignoré.');
     return;
   }
 

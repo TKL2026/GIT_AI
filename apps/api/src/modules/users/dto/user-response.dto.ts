@@ -23,6 +23,9 @@ export class UserResponseDto {
   @ApiProperty()
   createdAt!: Date;
 
+  @ApiProperty({ nullable: true })
+  emailVerifiedAt!: Date | null;
+
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
@@ -32,6 +35,7 @@ export class UserResponseDto {
     dto.role = user.role;
     dto.organizationId = user.organizationId;
     dto.createdAt = user.createdAt;
+    dto.emailVerifiedAt = user.emailVerifiedAt;
     return dto;
   }
 }

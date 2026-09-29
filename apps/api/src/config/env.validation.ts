@@ -34,6 +34,21 @@ class EnvironmentVariables {
   @IsString()
   ANTHROPIC_API_KEY?: string;
 
+  /** Optionnel : sans clé, les emails (reset mot de passe, invitations) sont
+   * seulement journalisés côté serveur au lieu d'être envoyés. */
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
+
+  /** Optionnel : sans DSN, l'app démarre normalement, Sentry reste simplement inactif. */
+  @IsOptional()
+  @IsString()
+  SENTRY_DSN?: string;
+
   /** Optionnel : sans ces variables, l'app démarre normalement, seules les routes /whatsapp répondent 503. */
   @IsOptional()
   @IsString()
@@ -63,6 +78,15 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   WHATSAPP_INBOUND_ORGANIZATION_ID?: string;
+
+  /** Optionnel : désactivé par défaut. Ne jamais activer en production durable — accès sans mot de passe au compte démo, réservé aux audits temporaires. */
+  @IsOptional()
+  @IsString()
+  DEMO_MODE_ENABLED?: string;
+
+  @IsOptional()
+  @IsString()
+  DEMO_USER_EMAIL?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

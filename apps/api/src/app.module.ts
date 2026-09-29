@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -13,6 +14,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
 import { FraudModule } from './modules/fraud/fraud.module';
 import { HealthModule } from './modules/health/health.module';
+import { InvitesModule } from './modules/invites/invites.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
@@ -30,11 +32,15 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60000, limit: 120 }],
+    }),
     PrismaModule,
     HealthModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,
+    InvitesModule,
     ProductsModule,
     StockModule,
     SalesModule,
@@ -49,6 +55,7 @@ import { PrismaModule } from './prisma/prisma.module';
     WhatsAppModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },

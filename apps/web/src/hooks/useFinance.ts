@@ -1,17 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../api/finance';
 
-export function useFinanceSummary(from?: string, to?: string) {
+export function useFinanceSummary(from?: string, to?: string, enabled = true) {
   return useQuery({
     queryKey: ['finance', 'summary', from ?? null, to ?? null],
     queryFn: () => financeApi.getSummary({ from, to }),
+    enabled,
   });
 }
 
-export function useProductsProfitability(from?: string, to?: string) {
+export function useProductsProfitability(from?: string, to?: string, enabled = true) {
   return useQuery({
     queryKey: ['finance', 'products-profitability', from ?? null, to ?? null],
     queryFn: () => financeApi.getProductsProfitability({ from, to }),
+    enabled,
   });
 }
 

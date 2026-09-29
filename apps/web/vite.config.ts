@@ -6,6 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Autorise le sous-domaine aléatoire du tunnel Cloudflare (change à
+    // chaque redémarrage) — accès temporaire pour audit externe uniquement.
+    allowedHosts: ['.trycloudflare.com'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['@copilote/shared'],

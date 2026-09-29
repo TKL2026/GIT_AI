@@ -14,12 +14,36 @@ export interface UserDto {
   role: Role;
   organizationId: string;
   createdAt: string;
+  emailVerifiedAt: string | null;
 }
 
 export interface OrganizationDto {
   id: string;
   name: string;
   createdAt: string;
+  country: string | null;
+  currency: string | null;
+  industry: string | null;
+  teamSize: string | null;
+  modules: string[];
+  onboardingStep: string | null;
+  onboardingCompletedAt: string | null;
+}
+
+export interface PendingInviteDto {
+  id: string;
+  email: string;
+  role: Role;
+  token: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+}
+
+export interface InvitePreviewDto {
+  organizationName: string;
+  email: string;
+  role: Role;
 }
 
 export interface ProductDto {

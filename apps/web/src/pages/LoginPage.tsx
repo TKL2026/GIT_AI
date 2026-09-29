@@ -1,7 +1,9 @@
 import {
   Alert,
+  Anchor,
   Button,
   Center,
+  Group,
   Paper,
   PasswordInput,
   Stack,
@@ -11,7 +13,7 @@ import {
 import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Logo } from '../components/Logo';
 import { ApiError } from '../lib/apiClient';
@@ -40,7 +42,7 @@ export function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(values.email, values.password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Connexion impossible.');
     } finally {
@@ -78,6 +80,10 @@ export function LoginPage() {
               {...form.getInputProps('password')}
             />
 
+            <Anchor component={Link} to="/forgot-password" size="sm" ta="right">
+              Mot de passe oublié ?
+            </Anchor>
+
             {error && (
               <Alert color="red" icon={<IconAlertCircle size={16} />} role="alert">
                 {error}
@@ -87,6 +93,15 @@ export function LoginPage() {
             <Button type="submit" loading={isSubmitting} fullWidth mt="sm">
               Se connecter
             </Button>
+
+            <Group justify="center">
+              <Text size="sm" c="dimmed">
+                Pas encore de compte ?{' '}
+                <Anchor component={Link} to="/register" size="sm">
+                  Créer un compte
+                </Anchor>
+              </Text>
+            </Group>
           </Stack>
         </form>
       </Paper>

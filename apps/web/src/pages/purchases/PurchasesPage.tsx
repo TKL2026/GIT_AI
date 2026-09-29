@@ -1,74 +1,69 @@
 import type { PurchaseOrderDto, PurchaseRecommendationDto, SupplierDto } from '@copilote/shared';
-import { Badge, Button, Menu, Tabs, Text, UnstyledButton } from '@mantine/core';
+import { Badge, Button, Tabs, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { notifications } from '@mantine/notifications';
 import {
   IconBuildingWarehouse,
   IconBulb,
-  IconDotsVertical,
+  IconChevronRight,
   IconPackageImport,
   IconPlus,
-  IconShoppingCartCancel,
-  IconTruckDelivery,
 } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole, STOCK_MUTATION_ROLES, SUPPLIER_MUTATION_ROLES } from '../../auth/roles';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
+import { SearchInput } from '../../components/SearchInput';
 import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
-import { useCancelPurchaseOrder, usePurchaseOrders, useReceivePurchaseOrder } from '../../hooks/usePurchases';
+import { usePurchaseOrders } from '../../hooks/usePurchases';
 import { useSuppliers } from '../../hooks/useSuppliers';
-import { ApiError } from '../../lib/apiClient';
 import { formatCurrency, formatDate } from '../../lib/format';
 import { PURCHASE_ORDER_STATUS_COLORS, PURCHASE_ORDER_STATUS_LABELS } from '../../lib/labels';
-import { PurchaseOrderDetailModal } from './PurchaseOrderDetailModal';
 import { PurchaseOrderFormModal } from './PurchaseOrderFormModal';
 import { SupplierFormModal } from './SupplierFormModal';
 
 export function PurchasesPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: orders = [], isLoading: isLoadingOrders } = usePurchaseOrders();
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
   const { data: recommendations = [], isLoading: isLoadingRecommendations } = usePurchaseRecommendations();
-  const receiveOrder = useReceivePurchaseOrder();
-  const cancelOrder = useCancelPurchaseOrder();
 
   const [orderModalOpened, { open: openOrderModal, close: closeOrderModal }] = useDisclosure(false);
   const [supplierModalOpened, { open: openSupplierModal, close: closeSupplierModal }] =
     useDisclosure(false);
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrderDto | null>(null);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
 
   const canManageOrders = hasRole(user, STOCK_MUTATION_ROLES);
   const canManageSuppliers = hasRole(user, SUPPLIER_MUTATION_ROLES);
 
-  async function handleReceive(id: string) {
-    try {
-      await receiveOrder.mutateAsync(id);
-      notifications.show({ color: 'green', message: 'Commande réceptionnée, stock mis à jour.' });
-    } catch (err) {
-      notifications.show({
-        color: 'red',
-        message: err instanceof ApiError ? err.message : 'Impossible de réceptionner la commande.',
-      });
-    }
-  }
+  const filteredOrders = useMemo(() => {
+    const query = orderSearch.trim().toLowerCase();
+    if (!query) return orders;
+    return orders.filter((o) => o.supplierName.toLowerCase().includes(query));
+  }, [orders, orderSearch]);
 
-  async function handleCancel(id: string) {
-    try {
-      await cancelOrder.mutateAsync(id);
-      notifications.show({ color: 'green', message: 'Commande annulée.' });
-    } catch (err) {
-      notifications.show({
-        color: 'red',
-        message: err instanceof ApiError ? err.message : "Impossible d'annuler la commande.",
-      });
-    }
-  }
+  const filteredSuppliers = useMemo(() => {
+    const query = supplierSearch.trim().toLowerCase();
+    if (!query) return suppliers;
+    return suppliers.filter((s) => s.name.toLowerCase().includes(query));
+  }, [suppliers, supplierSearch]);
 
   const orderColumns: DataTableColumn<PurchaseOrderDto>[] = [
-    { key: 'createdAt', label: 'Date', render: (o) => formatDate(o.createdAt) },
-    { key: 'supplierName', label: 'Fournisseur', render: (o) => o.supplierName },
+    {
+      key: 'createdAt',
+      label: 'Date',
+      render: (o) => formatDate(o.createdAt),
+      sortValue: (o) => new Date(o.createdAt).getTime(),
+    },
+    {
+      key: 'supplierName',
+      label: 'Fournisseur',
+      render: (o) => o.supplierName,
+      sortValue: (o) => o.supplierName.toLowerCase(),
+    },
     {
       key: 'status',
       label: 'Statut',
@@ -84,44 +79,18 @@ export function PurchasesPage() {
       label: 'Total',
       textAlign: 'right',
       render: (o) => formatCurrency(o.totalAmount),
+      sortValue: (o) => o.totalAmount,
     },
     {
       key: 'actions',
       label: '',
-      render: (o) => (
-        <Menu shadow="md" width={200} position="bottom-end">
-          <Menu.Target>
-            <UnstyledButton>
-              <IconDotsVertical size={16} />
-            </UnstyledButton>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item onClick={() => setSelectedOrder(o)}>Voir le détail</Menu.Item>
-            {canManageOrders && o.status === 'PENDING' && (
-              <>
-                <Menu.Item
-                  leftSection={<IconTruckDelivery size={16} />}
-                  onClick={() => handleReceive(o.id)}
-                >
-                  Réceptionner
-                </Menu.Item>
-                <Menu.Item
-                  leftSection={<IconShoppingCartCancel size={16} />}
-                  color="red"
-                  onClick={() => handleCancel(o.id)}
-                >
-                  Annuler
-                </Menu.Item>
-              </>
-            )}
-          </Menu.Dropdown>
-        </Menu>
-      ),
+      textAlign: 'right',
+      render: () => <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />,
     },
   ];
 
   const supplierColumns: DataTableColumn<SupplierDto>[] = [
-    { key: 'name', label: 'Nom', render: (s) => s.name },
+    { key: 'name', label: 'Nom', render: (s) => s.name, sortValue: (s) => s.name.toLowerCase() },
     { key: 'contactName', label: 'Contact', render: (s) => s.contactName ?? '—' },
     { key: 'phone', label: 'Téléphone', render: (s) => s.phone ?? '—' },
     {
@@ -137,7 +106,13 @@ export function PurchasesPage() {
 
   const recommendationColumns: DataTableColumn<PurchaseRecommendationDto>[] = [
     { key: 'productName', label: 'Produit', render: (r) => r.productName },
-    { key: 'recommendedQuantity', label: 'Qté recommandée', textAlign: 'right', render: (r) => r.recommendedQuantity },
+    {
+      key: 'recommendedQuantity',
+      label: 'Qté recommandée',
+      textAlign: 'right',
+      render: (r) => r.recommendedQuantity,
+      sortValue: (r) => r.recommendedQuantity,
+    },
     {
       key: 'daysUntilStockout',
       label: 'Jours avant rupture',
@@ -146,14 +121,11 @@ export function PurchasesPage() {
         r.daysUntilStockout === null ? (
           <Text size="sm" c="dimmed">—</Text>
         ) : (
-          <Text
-            size="sm"
-            fw={600}
-            c={r.daysUntilStockout < 7 ? 'red' : r.daysUntilStockout < 14 ? 'orange' : undefined}
-          >
-            {r.daysUntilStockout}
-          </Text>
+          <Badge color={r.daysUntilStockout < 7 ? 'error' : r.daysUntilStockout < 14 ? 'warning' : 'emerald'} variant="light">
+            {r.daysUntilStockout} j
+          </Badge>
         ),
+      sortValue: (r) => r.daysUntilStockout ?? Number.MAX_SAFE_INTEGER,
     },
     {
       key: 'recommendedSupplierName',
@@ -206,12 +178,20 @@ export function PurchasesPage() {
               Créez d'abord un fournisseur pour pouvoir enregistrer une commande.
             </Text>
           )}
+          <SearchInput
+            value={orderSearch}
+            onChange={(e) => setOrderSearch(e.currentTarget.value)}
+            placeholder="Rechercher par fournisseur…"
+            mb="md"
+          />
           <DataTable
             columns={orderColumns}
-            rows={orders}
+            rows={filteredOrders}
             rowKey={(o) => o.id}
             isLoading={isLoadingOrders}
             emptyMessage="Aucune commande enregistrée pour le moment."
+            pageSize={10}
+            onRowClick={(o) => navigate(`/purchases/${o.id}`)}
           />
         </Tabs.Panel>
 
@@ -221,12 +201,19 @@ export function PurchasesPage() {
               Nouveau fournisseur
             </Button>
           )}
+          <SearchInput
+            value={supplierSearch}
+            onChange={(e) => setSupplierSearch(e.currentTarget.value)}
+            placeholder="Rechercher par nom…"
+            mb="md"
+          />
           <DataTable
             columns={supplierColumns}
-            rows={suppliers}
+            rows={filteredSuppliers}
             rowKey={(s) => s.id}
             isLoading={isLoadingSuppliers}
             emptyMessage="Aucun fournisseur enregistré pour le moment."
+            pageSize={10}
           />
         </Tabs.Panel>
 
@@ -241,13 +228,13 @@ export function PurchasesPage() {
             rowKey={(r) => r.productId}
             isLoading={isLoadingRecommendations}
             emptyMessage="Rien à commander pour le moment."
+            pageSize={10}
           />
         </Tabs.Panel>
       </Tabs>
 
       <PurchaseOrderFormModal opened={orderModalOpened} onClose={closeOrderModal} />
       <SupplierFormModal opened={supplierModalOpened} onClose={closeSupplierModal} />
-      <PurchaseOrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
     </>
   );
 }

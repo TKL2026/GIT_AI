@@ -6,25 +6,43 @@ import {
   Loader,
   Paper,
   ScrollArea,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
+  Title,
   TypographyStylesProvider,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
+  IconAlertTriangle,
   IconBrandWhatsapp,
+  IconBulb,
   IconMessageChatbot,
   IconReportAnalytics,
   IconSend,
+  IconShieldExclamation,
+  IconSparkles,
   IconTrash,
+  IconTruckDelivery,
 } from '@tabler/icons-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 import { PageHeader } from '../../components/PageHeader';
+import { RecommendationCard } from '../../components/RecommendationCard';
 import { useCopilotChat, useDailyReport } from '../../hooks/useCopilot';
+import { useProductsToPush } from '../../hooks/useCommercial';
+import { useFraudAnomalies } from '../../hooks/useFraud';
+import { useReplenishmentForecast } from '../../hooks/useForecast';
+import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
+import { useStockAlerts } from '../../hooks/useStock';
 import { useSendWhatsAppDailyReport } from '../../hooks/useWhatsApp';
 import { ApiError } from '../../lib/apiClient';
+import { formatCurrency } from '../../lib/format';
+import { PurchaseOrderFormModal } from '../purchases/PurchaseOrderFormModal';
 
 const SUGGESTIONS = [
   'Y a-t-il des ruptures de stock ?',
@@ -34,6 +52,8 @@ const SUGGESTIONS = [
 ];
 
 export function CopilotPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [input, setInput] = useState('');
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -42,6 +62,29 @@ export function CopilotPage() {
   const dailyReport = useDailyReport();
   const sendWhatsAppReport = useSendWhatsAppDailyReport();
   const isBusy = chat.isPending || dailyReport.isPending || sendWhatsAppReport.isPending;
+
+  const { data: alerts = [] } = useStockAlerts();
+  const { data: anomalies = [] } = useFraudAnomalies();
+  const { data: forecast = [] } = useReplenishmentForecast();
+  const { data: purchaseRecommendations = [] } = usePurchaseRecommendations();
+  const { data: productsToPush = [] } = useProductsToPush();
+
+  const [orderModalOpened, { open: openOrderModal, close: closeOrderModal }] = useDisclosure(false);
+  const [prefill, setPrefill] = useState<{ item: { productId: string; quantity: number; unitCost?: number }; supplierId?: string } | null>(null);
+
+  const replenishmentRows = useMemo(() => {
+    const recommendationByProduct = new Map(purchaseRecommendations.map((r) => [r.productId, r]));
+    return forecast
+      .filter((f) => (f.recommendedReorderQuantity ?? 0) > 0)
+      .map((f) => ({ ...f, recommendation: recommendationByProduct.get(f.productId) }))
+      .slice(0, 3);
+  }, [forecast, purchaseRecommendations]);
+
+  const stockCards = alerts.slice(0, 3);
+  const anomalyCards = anomalies.slice(0, 3);
+  const opportunityCards = productsToPush.slice(0, 3);
+  const hasRecommendations =
+    stockCards.length + anomalyCards.length + replenishmentRows.length + opportunityCards.length > 0;
 
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
@@ -100,6 +143,19 @@ export function CopilotPage() {
     });
   }
 
+  function handlePrepareOrder(row: (typeof replenishmentRows)[number]) {
+    if (!row.recommendation) return;
+    setPrefill({
+      item: {
+        productId: row.productId,
+        quantity: row.recommendation.recommendedQuantity,
+        unitCost: row.recommendation.lastUnitCost ?? undefined,
+      },
+      supplierId: row.recommendation.recommendedSupplierId ?? undefined,
+    });
+    openOrderModal();
+  }
+
   return (
     <>
       <PageHeader
@@ -138,26 +194,99 @@ export function CopilotPage() {
       />
 
       <Paper withBorder radius="md" p="md" mb="md">
-        <ScrollArea h={480} viewportRef={viewportRef}>
+        <ScrollArea h={messages.length === 0 ? undefined : 480} viewportRef={viewportRef}>
           <Stack gap="sm">
             {messages.length === 0 && (
-              <Stack align="center" justify="center" gap="md" py="xl">
-                <IconMessageChatbot size={40} color="var(--mantine-color-dimmed)" />
-                <Text c="dimmed" size="sm" ta="center">
-                  Demandez au copilote un état des lieux, un risque à surveiller ou une analyse.
-                </Text>
-                <Group justify="center" gap="xs">
-                  {SUGGESTIONS.map((suggestion) => (
-                    <Chip
-                      key={suggestion}
-                      variant="light"
-                      onClick={() => sendMessage(suggestion)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {suggestion}
-                    </Chip>
-                  ))}
+              <Stack gap="lg" py="md">
+                <Group gap="xs">
+                  <IconSparkles size={22} color="var(--mantine-color-emerald-6)" />
+                  <Title order={4}>
+                    Bonjour {user?.firstName}, j'ai analysé votre activité.
+                  </Title>
                 </Group>
+
+                {hasRecommendations ? (
+                  <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+                    {stockCards.map((p) => (
+                      <RecommendationCard
+                        key={`alert-${p.id}`}
+                        severity="critical"
+                        icon={IconAlertTriangle}
+                        label="Stock critique"
+                        title={p.name}
+                        description={`${p.stockQuantity} unité(s) restante(s) (seuil ${p.minStock}).`}
+                        actions={[{ label: 'Voir le produit', onClick: () => navigate(`/products/${p.id}`) }]}
+                      />
+                    ))}
+
+                    {anomalyCards.map((a) => (
+                      <RecommendationCard
+                        key={`anomaly-${a.type}-${a.productId}-${a.performedByUserId ?? 'anon'}`}
+                        severity={a.severity === 'high' ? 'critical' : 'warning'}
+                        icon={IconShieldExclamation}
+                        label="Anomalie"
+                        title={a.productName}
+                        description={a.description}
+                        actions={[{ label: 'Voir Finance', onClick: () => navigate('/finance') }]}
+                      />
+                    ))}
+
+                    {replenishmentRows.map((row) => (
+                      <RecommendationCard
+                        key={`replenish-${row.productId}`}
+                        severity={
+                          row.daysUntilStockout !== null && row.daysUntilStockout < 7 ? 'critical' : 'warning'
+                        }
+                        icon={IconTruckDelivery}
+                        label="Réapprovisionnement"
+                        title={row.productName}
+                        description={`Je recommande de commander ${row.recommendedReorderQuantity} unité(s)${
+                          row.recommendation?.recommendedSupplierName
+                            ? ` auprès de ${row.recommendation.recommendedSupplierName}`
+                            : ''
+                        }.`}
+                        actions={[
+                          { label: 'Voir le produit', onClick: () => navigate(`/products/${row.productId}`) },
+                          { label: 'Préparer commande', onClick: () => handlePrepareOrder(row), variant: 'filled' },
+                        ]}
+                      />
+                    ))}
+
+                    {opportunityCards.map((p) => (
+                      <RecommendationCard
+                        key={`opportunity-${p.productId}`}
+                        severity="info"
+                        icon={IconBulb}
+                        label="Opportunité"
+                        title={p.productName}
+                        description={`${p.description} Marge unitaire : ${formatCurrency(p.marginPerUnit)}.`}
+                        actions={[{ label: 'Voir le produit', onClick: () => navigate(`/products/${p.productId}`) }]}
+                      />
+                    ))}
+                  </SimpleGrid>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    Rien à signaler pour l'instant — aucune alerte, anomalie ou opportunité détectée.
+                  </Text>
+                )}
+
+                <Stack gap="xs">
+                  <Text size="sm" c="dimmed">
+                    Ou posez directement votre question :
+                  </Text>
+                  <Group gap="xs">
+                    {SUGGESTIONS.map((suggestion) => (
+                      <Chip
+                        key={suggestion}
+                        variant="light"
+                        onClick={() => sendMessage(suggestion)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {suggestion}
+                      </Chip>
+                    ))}
+                  </Group>
+                </Stack>
               </Stack>
             )}
 
@@ -220,6 +349,16 @@ export function CopilotPage() {
           Envoyer
         </Button>
       </Group>
+
+      <PurchaseOrderFormModal
+        opened={orderModalOpened}
+        onClose={() => {
+          closeOrderModal();
+          setPrefill(null);
+        }}
+        initialItem={prefill?.item}
+        initialSupplierId={prefill?.supplierId}
+      />
     </>
   );
 }

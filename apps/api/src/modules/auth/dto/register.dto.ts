@@ -1,11 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'Boutique Demo' })
+  /**
+   * Optionnel : l'onboarding ne demande le nom de l'entreprise qu'à
+   * l'écran suivant (PATCH /organizations/me) — un nom générique est
+   * utilisé ici si omis.
+   */
+  @ApiPropertyOptional({ example: 'Boutique Demo' })
+  @IsOptional()
   @IsString()
   @MinLength(2)
-  organizationName!: string;
+  organizationName?: string;
 
   @ApiProperty({ example: 'owner@example.com' })
   @IsEmail()

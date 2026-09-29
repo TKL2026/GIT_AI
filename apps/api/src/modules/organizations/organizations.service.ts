@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -12,5 +13,16 @@ export class OrganizationsService {
 
   create(name: string): Promise<Organization> {
     return this.prisma.organization.create({ data: { name } });
+  }
+
+  update(id: string, dto: UpdateOrganizationDto): Promise<Organization> {
+    return this.prisma.organization.update({ where: { id }, data: dto });
+  }
+
+  completeOnboarding(id: string): Promise<Organization> {
+    return this.prisma.organization.update({
+      where: { id },
+      data: { onboardingStep: 'done', onboardingCompletedAt: new Date() },
+    });
   }
 }

@@ -12,6 +12,7 @@ import {
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { useEffect } from 'react';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreatePurchaseOrder } from '../../hooks/usePurchases';
 import { useSuppliers } from '../../hooks/useSuppliers';
@@ -21,6 +22,9 @@ import { formatCurrency } from '../../lib/format';
 interface PurchaseOrderFormModalProps {
   opened: boolean;
   onClose: () => void;
+  /** Pré-remplit la commande (ex: depuis "Préparer commande" sur une recommandation de réapprovisionnement). */
+  initialItem?: { productId: string; quantity: number; unitCost?: number };
+  initialSupplierId?: string;
 }
 
 interface PurchaseOrderLineFormValues {
@@ -34,7 +38,12 @@ interface PurchaseOrderFormValues {
   items: PurchaseOrderLineFormValues[];
 }
 
-export function PurchaseOrderFormModal({ opened, onClose }: PurchaseOrderFormModalProps) {
+export function PurchaseOrderFormModal({
+  opened,
+  onClose,
+  initialItem,
+  initialSupplierId,
+}: PurchaseOrderFormModalProps) {
   const { data: suppliers = [] } = useSuppliers();
   const { data: products = [] } = useProducts();
   const createPurchaseOrder = useCreatePurchaseOrder();
@@ -57,6 +66,22 @@ export function PurchaseOrderFormModal({ opened, onClose }: PurchaseOrderFormMod
       },
     },
   });
+
+  useEffect(() => {
+    if (opened && initialItem) {
+      form.setValues({
+        supplierId: initialSupplierId ?? '',
+        items: [
+          {
+            productId: initialItem.productId,
+            quantity: initialItem.quantity,
+            unitCost: initialItem.unitCost ?? '',
+          },
+        ],
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened]);
 
   const supplierOptions = suppliers.map((s) => ({ value: s.id, label: s.name }));
   const productOptions = products.map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` }));

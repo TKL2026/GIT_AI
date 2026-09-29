@@ -95,7 +95,7 @@ export const apiClient = {
     }),
 
   register: (payload: {
-    organizationName: string;
+    organizationName?: string;
     email: string;
     password: string;
     firstName: string;
@@ -105,6 +105,8 @@ export const apiClient = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  demoLogin: () => request<AuthResponseDto>('/auth/demo-login', { method: 'POST' }),
 
   get: <T>(path: string) => request<T>(path),
 

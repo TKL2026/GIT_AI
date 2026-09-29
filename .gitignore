@@ -4,9 +4,11 @@ dist/
 build/
 .env
 .env.local
+.env.production.secrets
 *.log
 coverage/
 .DS_Store
 apps/api/generated/
 apps/web/dist/
 *.tsbuildinfo
+backups/

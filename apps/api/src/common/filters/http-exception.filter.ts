@@ -6,12 +6,17 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 import { Request, Response } from 'express';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  // Ne remonte à Sentry que les erreurs inattendues (5xx) — les
+  // HttpException "normales" (401, 404, validation...) sont ignorées
+  // automatiquement par ce décorateur, pas la peine de les dupliquer ici.
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

@@ -1,12 +1,21 @@
+import './instrument';
+
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
+
+  // CSP désactivée : cette API ne sert pas de HTML applicatif (seule
+  // exception, Swagger UI sur /api/docs, qu'une CSP par défaut casserait).
+  // Les autres protections (X-Frame-Options, HSTS, X-Content-Type-Options...)
+  // restent actives.
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN'),

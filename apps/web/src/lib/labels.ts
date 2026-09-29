@@ -14,8 +14,8 @@ export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> =
 };
 
 export const PURCHASE_ORDER_STATUS_COLORS: Record<PurchaseOrderStatus, string> = {
-  [PurchaseOrderStatus.PENDING]: 'yellow',
-  [PurchaseOrderStatus.RECEIVED]: 'green',
+  [PurchaseOrderStatus.PENDING]: 'warning',
+  [PurchaseOrderStatus.RECEIVED]: 'emerald',
   [PurchaseOrderStatus.CANCELLED]: 'gray',
 };
 

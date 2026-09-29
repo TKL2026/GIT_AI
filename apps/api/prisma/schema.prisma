@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" pour le dev local ; l'image Docker (Alpine récent, sans OpenSSL
+  // 1.1) a besoin du moteur musl compilé pour OpenSSL 3.x, sinon Prisma
+  // échoue silencieusement au runtime ("Could not parse schema engine response").
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -49,36 +53,73 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
 
-  users          User[]
-  products       Product[]
-  stockMovements StockMovement[]
-  sales          Sale[]
-  suppliers      Supplier[]
-  purchaseOrders PurchaseOrder[]
-  expenses       Expense[]
+  // Onboarding — tous nullable/valeur par défaut vide : une organisation
+  // existante avant cette fonctionnalité reste valide sans backfill de ces
+  // champs eux-mêmes (seuls onboardingStep/onboardingCompletedAt sont
+  // backfillés, voir migration, pour ne pas renvoyer les comptes existants
+  // dans l'assistant d'inscription).
+  country               String?
+  // Déploiement Cameroun uniquement pour l'instant — une seule devise réelle
+  // (XAF), fixée par défaut plutôt que proposée comme un choix qui n'a
+  // aucun effet ailleurs dans l'app (l'affichage est toujours en FCFA).
+  currency              String?   @default("XAF")
+  industry              String?
+  teamSize              String?
+  modules               String[]  @default([])
+  onboardingStep        String?
+  onboardingCompletedAt DateTime?
+
+  users               User[]
+  products            Product[]
+  stockMovements      StockMovement[]
+  sales               Sale[]
+  suppliers           Supplier[]
+  purchaseOrders      PurchaseOrder[]
+  expenses            Expense[]
+  pendingInvites      PendingInvite[]
 
   @@map("organizations")
 }
 
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  passwordHash   String
-  firstName      String
-  lastName       String
-  role           Role     @default(EMPLOYEE)
-  organizationId String
-  createdAt      DateTime @default(now())
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role      @default(EMPLOYEE)
+  organizationId  String
+  // Vérification "douce" : ne bloque pas l'accès au produit (l'onboarding ne
+  // doit pas être interrompu), sert juste à confirmer que l'email est
+  // valide/atteignable — notamment pour que "mot de passe oublié" fonctionne.
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  refreshTokens  RefreshToken[]
-  stockMovements StockMovement[]
-  sales          Sale[]
-  purchaseOrders PurchaseOrder[]
-  expenses       Expense[]
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  stockMovements        StockMovement[]
+  sales                 Sale[]
+  purchaseOrders        PurchaseOrder[]
+  expenses              Expense[]
 
   @@index([organizationId])
   @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 model RefreshToken {
@@ -93,6 +134,37 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model PendingInvite {
+  id              String    @id @default(uuid())
+  organizationId  String
+  email           String
+  role            Role
+  token           String    @unique
+  invitedByUserId String
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("pending_invites")
 }
 
 model Product {
