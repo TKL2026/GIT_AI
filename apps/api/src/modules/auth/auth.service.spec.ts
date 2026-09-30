@@ -48,6 +48,7 @@ describe('AuthService', () => {
           : arg({
               organization: { create: jest.fn().mockResolvedValue({ id: 'org-1', name: 'Boutique' }) },
               user: { create: jest.fn().mockResolvedValue(fakeUser) },
+              subscription: { create: jest.fn().mockResolvedValue({}) },
             }),
       ),
       refreshToken: {
@@ -154,6 +155,7 @@ describe('AuthService', () => {
         cb({
           organization: { create: createOrganization },
           user: { create: jest.fn().mockResolvedValue(fakeUser) },
+          subscription: { create: jest.fn().mockResolvedValue({}) },
         }),
       );
 

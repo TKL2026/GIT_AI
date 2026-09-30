@@ -48,6 +48,39 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentProvider {
+  CAMPAY
+}
+
+/// Opérateur mobile money choisi par l'utilisateur à l'écran de paiement —
+/// informatif seulement : CamPay déduit lui-même l'opérateur réel depuis le
+/// préfixe du numéro, ce champ ne lui est jamais transmis.
+enum MobileMoneyOperator {
+  MTN
+  ORANGE
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
 model Organization {
   id        String   @id @default(uuid())
   name      String
@@ -77,6 +110,8 @@ model Organization {
   purchaseOrders      PurchaseOrder[]
   expenses            Expense[]
   pendingInvites      PendingInvite[]
+  subscription        Subscription?
+  paymentTransactions PaymentTransaction[]
 
   @@map("organizations")
 }
@@ -314,4 +349,81 @@ model Expense {
 
   @@index([organizationId])
   @@map("expenses")
+}
+
+/// Plan d'abonnement UGE. `code` est la clé stable utilisée par le code
+/// (jamais l'id, pour permettre de recréer/réordonner sans casser de
+/// référence en dur côté frontend). Prix placeholder — à ajuster plus tard.
+model Plan {
+  id        String              @id @default(uuid())
+  code      String              @unique
+  name      String
+  price     Int
+  currency  String              @default("XAF")
+  period    SubscriptionPeriod  @default(MONTHLY)
+  /// Limites/fonctionnalités libres (ex: {"maxUsers": 5, "modules": [...]})
+  /// — évite une migration à chaque ajustement de grille tarifaire.
+  features  Json?
+  isActive  Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  subscriptions Subscription[]
+  transactions  PaymentTransaction[]
+
+  @@map("plans")
+}
+
+/// Un seul abonnement par organisation (contrainte @unique). Absence de ligne
+/// = organisation en accès libre (pas de restriction imposée par ce module
+/// pour l'instant — voir note d'architecture).
+model Subscription {
+  id               String             @id @default(uuid())
+  organizationId   String             @unique
+  planId           String?
+  status           SubscriptionStatus @default(TRIAL)
+  startedAt        DateTime?
+  currentPeriodEnd DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan?                @relation(fields: [planId], references: [id])
+  transactions PaymentTransaction[]
+
+  @@map("subscriptions")
+}
+
+/// Une tentative de paiement CamPay. `amount`/`currency` sont un instantané
+/// du VRAI prix du plan au moment de la création — jamais une valeur reçue
+/// du frontend. `externalReference` (la nôtre) et `providerReference`
+/// (celle de CamPay) sont toutes deux uniques pour empêcher tout doublon,
+/// et servent de verrou d'idempotence pour le webhook.
+model PaymentTransaction {
+  id                String                    @id @default(uuid())
+  organizationId    String
+  planId            String
+  subscriptionId    String?
+  amount            Int
+  currency          String
+  provider          PaymentProvider           @default(CAMPAY)
+  operator          MobileMoneyOperator
+  phoneNumber       String
+  status            PaymentTransactionStatus  @default(PENDING)
+  externalReference String                    @unique
+  providerReference String?                   @unique
+  providerStatusRaw String?
+  metadata          Json?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  paidAt            DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan          @relation(fields: [planId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("payment_transactions")
 }

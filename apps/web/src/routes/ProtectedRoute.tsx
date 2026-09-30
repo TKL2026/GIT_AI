@@ -29,5 +29,13 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to={pathForOnboardingStep(organization.onboardingStep)} replace />;
   }
 
+  // Essai expiré (ou abonnement expiré) : accès à l'espace de travail
+  // entièrement bloqué tant qu'aucune offre n'est choisie — les données ne
+  // sont jamais supprimées, seule la navigation est redirigée.
+  const isSuspendedRoute = location.pathname === '/subscription-expired';
+  if (organization?.accessLocked && !isSuspendedRoute) {
+    return <Navigate to="/subscription-expired" replace />;
+  }
+
   return <>{children}</>;
 }

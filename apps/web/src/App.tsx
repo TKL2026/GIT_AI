@@ -1,9 +1,10 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
-import { FINANCE_ROLES } from './auth/roles';
+import { BILLING_ROLES, FINANCE_ROLES } from './auth/roles';
 import { AppLayout } from './layout/AppLayout';
 import { AboutPage } from './pages/AboutPage';
 import { AcceptInvitePage } from './pages/AcceptInvitePage';
+import { BillingPage } from './pages/billing/BillingPage';
 import { CommercialPage } from './pages/commercial/CommercialPage';
 import { CopilotPage } from './pages/copilot/CopilotPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -25,11 +26,13 @@ import { ProductDetailPage } from './pages/products/ProductDetailPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
+import { PricingPage } from './pages/PricingPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SaleDetailPage } from './pages/sales/SaleDetailPage';
 import { SalesPage } from './pages/sales/SalesPage';
 import { StockPage } from './pages/stock/StockPage';
+import { SubscriptionExpiredPage } from './pages/SubscriptionExpiredPage';
 import { UsersPage } from './pages/UsersPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { HomeRoute } from './routes/HomeRoute';
@@ -53,6 +56,8 @@ export function App() {
         <Route path="/legal" element={<LegalNoticePage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/tarifs" element={<PricingPage />} />
+        <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
 
         {/* Assistant d'inscription : authentifié dès l'écran Compte, mais
             sans le chrome applicatif (AppLayout) — l'utilisateur n'est pas
@@ -99,6 +104,14 @@ export function App() {
             }
           />
           <Route path="/users" element={<UsersPage />} />
+          <Route
+            path="/billing"
+            element={
+              <RoleGuard roles={BILLING_ROLES}>
+                <BillingPage />
+              </RoleGuard>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

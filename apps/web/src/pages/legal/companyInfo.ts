@@ -11,7 +11,7 @@ export const COMPANY_INFO = {
   legalForm: '',
   registeredAddress: '',
   registrationNumber: '',
-  contactEmail: '',
+  contactEmail: 'fotsoulric2026@gmail.com',
   publicationDirector: '',
   hostingProviderName: '',
   hostingProviderAddress: '',

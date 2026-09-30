@@ -63,7 +63,7 @@ export class AuthService {
         },
       });
 
-      return tx.user.create({
+      const createdUser = await tx.user.create({
         data: {
           email: dto.email,
           passwordHash,
@@ -73,6 +73,19 @@ export class AuthService {
           organizationId: organization.id,
         },
       });
+
+      // Essai gratuit de 48h, démarré automatiquement à l'inscription.
+      const now = new Date();
+      await tx.subscription.create({
+        data: {
+          organizationId: organization.id,
+          status: 'TRIAL',
+          startedAt: now,
+          currentPeriodEnd: new Date(now.getTime() + 48 * 60 * 60 * 1000),
+        },
+      });
+
+      return createdUser;
     });
 
     const tokens = await this.issueTokens(user);

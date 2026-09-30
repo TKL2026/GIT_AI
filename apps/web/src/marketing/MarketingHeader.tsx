@@ -1,13 +1,35 @@
 import { Anchor, Box, Burger, Button, Container, Divider, Drawer, Group, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 
-const SECTION_LINKS = [
+interface SectionLink {
+  label: string;
+  href?: string;
+  to?: string;
+}
+
+const SECTION_LINKS: SectionLink[] = [
   { href: '#produit', label: 'Produit' },
   { href: '#copilote-ia', label: 'Copilote IA' },
-  { href: '#tarifs', label: 'Tarifs' },
+  { to: '/tarifs', label: 'Tarifs' },
 ];
+
+function SectionAnchor({ link, onClick, ...props }: { link: SectionLink; onClick?: () => void } & Record<string, unknown>): ReactNode {
+  if (link.to) {
+    return (
+      <Anchor component={Link} to={link.to} onClick={onClick} {...props}>
+        {link.label}
+      </Anchor>
+    );
+  }
+  return (
+    <Anchor href={link.href} onClick={onClick} {...props}>
+      {link.label}
+    </Anchor>
+  );
+}
 
 export function MarketingHeader() {
   const [opened, { toggle, close }] = useDisclosure(false);
@@ -32,9 +54,14 @@ export function MarketingHeader() {
 
           <Group gap="xl" visibleFrom="sm">
             {SECTION_LINKS.map((link) => (
-              <Anchor key={link.href} href={link.href} c="var(--mantine-color-text)" size="sm" fw={500} underline="never">
-                {link.label}
-              </Anchor>
+              <SectionAnchor
+                key={link.label}
+                link={link}
+                c="var(--mantine-color-text)"
+                size="sm"
+                fw={500}
+                underline="never"
+              />
             ))}
           </Group>
 
@@ -54,9 +81,7 @@ export function MarketingHeader() {
       <Drawer opened={opened} onClose={close} position="right" size="xs" hiddenFrom="sm" title={<Logo size="sm" />}>
         <Stack gap="md">
           {SECTION_LINKS.map((link) => (
-            <Anchor key={link.href} href={link.href} onClick={close} c="var(--mantine-color-text)" fw={500}>
-              {link.label}
-            </Anchor>
+            <SectionAnchor key={link.label} link={link} onClick={close} c="var(--mantine-color-text)" fw={500} />
           ))}
           <Divider />
           <Button component={Link} to="/login" variant="default" onClick={close}>

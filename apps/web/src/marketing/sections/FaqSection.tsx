@@ -48,7 +48,8 @@ const FAQS = [
   },
   {
     question: "Comment fonctionne l'abonnement ?",
-    answer: 'Notre tarification est en cours de finalisation. Pour l\'instant, commencez gratuitement ou contactez-nous pour en discuter.',
+    answer:
+      "Chaque compte commence par un essai gratuit de 48 heures. Ensuite, choisissez l'offre adaptée à votre entreprise — retrouvez le détail complet sur notre page Tarifs.",
   },
 ];
 

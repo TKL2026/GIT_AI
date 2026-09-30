@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Organization } from '@prisma/client';
+import { isSubscriptionLocked } from '../../../common/subscription/subscription-status.util';
+import { OrganizationWithSubscription } from '../organizations.service';
 
 export class OrganizationResponseDto {
   @ApiProperty()
@@ -32,7 +33,12 @@ export class OrganizationResponseDto {
   @ApiPropertyOptional()
   onboardingCompletedAt!: Date | null;
 
-  static fromEntity(organization: Organization): OrganizationResponseDto {
+  // Calculé côté serveur — ne jamais exposer le statut/les dates brutes de
+  // l'abonnement, juste ce booléen dont le frontend a besoin pour rediriger.
+  @ApiProperty()
+  accessLocked!: boolean;
+
+  static fromEntity(organization: OrganizationWithSubscription): OrganizationResponseDto {
     const dto = new OrganizationResponseDto();
     dto.id = organization.id;
     dto.name = organization.name;
@@ -44,6 +50,7 @@ export class OrganizationResponseDto {
     dto.modules = organization.modules;
     dto.onboardingStep = organization.onboardingStep;
     dto.onboardingCompletedAt = organization.onboardingCompletedAt;
+    dto.accessLocked = isSubscriptionLocked(organization.subscription);
     return dto;
   }
 }

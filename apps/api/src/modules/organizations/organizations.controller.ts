@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { OrganizationResponseDto } from './dto/organization-response.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -11,6 +12,7 @@ import { OrganizationsService } from './organizations.service';
 @ApiTags('organizations')
 @ApiBearerAuth()
 @Controller('organizations')
+@SkipSubscriptionCheck()
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 

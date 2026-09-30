@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersService } from './users.service';
@@ -12,6 +13,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
+  @SkipSubscriptionCheck()
   @ApiOkResponse({ type: UserResponseDto })
   async me(@CurrentUser() currentUser: AuthenticatedUser): Promise<UserResponseDto> {
     const user = await this.usersService.findById(currentUser.userId);

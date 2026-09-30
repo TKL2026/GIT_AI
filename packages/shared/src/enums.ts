@@ -34,3 +34,33 @@ export enum ExpenseCategory {
   TRANSPORT = 'TRANSPORT',
   OTHER = 'OTHER',
 }
+
+export enum SubscriptionStatus {
+  TRIAL = 'TRIAL',
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum SubscriptionPeriod {
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+export enum PaymentProvider {
+  CAMPAY = 'CAMPAY',
+}
+
+export enum MobileMoneyOperator {
+  MTN = 'MTN',
+  ORANGE = 'ORANGE',
+}
+
+export enum PaymentTransactionStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}

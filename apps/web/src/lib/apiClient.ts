@@ -27,6 +27,7 @@ class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
   }
@@ -54,7 +55,7 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ message: response.statusText }));
-    throw new ApiError(response.status, body.message ?? 'Une erreur est survenue.');
+    throw new ApiError(response.status, body.message ?? 'Une erreur est survenue.', body.code);
   }
 
   if (response.status === 204) {

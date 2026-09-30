@@ -17,7 +17,7 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
       { label: 'Copilote IA', href: '#copilote-ia' },
       { label: 'Gestion du stock', href: '#produit' },
       { label: 'WhatsApp', href: '#whatsapp' },
-      { label: 'Tarifs', href: '#tarifs' },
+      { label: 'Tarifs', to: '/tarifs' },
     ],
   },
   {

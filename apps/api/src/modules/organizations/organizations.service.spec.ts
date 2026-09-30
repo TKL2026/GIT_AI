@@ -28,6 +28,7 @@ describe('OrganizationsService', () => {
       expect(prisma.organization.update).toHaveBeenCalledWith({
         where: { id: organizationId },
         data: { country: 'Cameroun' },
+        include: { subscription: true },
       });
     });
   });

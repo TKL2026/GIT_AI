@@ -1,4 +1,11 @@
-import { ExpenseCategory, PaymentMethod, PurchaseOrderStatus } from '@copilote/shared';
+import {
+  ExpenseCategory,
+  MobileMoneyOperator,
+  PaymentMethod,
+  PaymentTransactionStatus,
+  PurchaseOrderStatus,
+  SubscriptionStatus,
+} from '@copilote/shared';
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: 'Espèces',
@@ -26,4 +33,41 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   [ExpenseCategory.SUPPLIES]: 'Fournitures',
   [ExpenseCategory.TRANSPORT]: 'Transport',
   [ExpenseCategory.OTHER]: 'Autre',
+};
+
+export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
+  [SubscriptionStatus.TRIAL]: 'Essai',
+  [SubscriptionStatus.ACTIVE]: 'Actif',
+  [SubscriptionStatus.PAST_DUE]: 'Paiement en retard',
+  [SubscriptionStatus.EXPIRED]: 'Expiré',
+  [SubscriptionStatus.CANCELLED]: 'Annulé',
+};
+
+export const SUBSCRIPTION_STATUS_COLORS: Record<SubscriptionStatus, string> = {
+  [SubscriptionStatus.TRIAL]: 'gray',
+  [SubscriptionStatus.ACTIVE]: 'emerald',
+  [SubscriptionStatus.PAST_DUE]: 'warning',
+  [SubscriptionStatus.EXPIRED]: 'error',
+  [SubscriptionStatus.CANCELLED]: 'gray',
+};
+
+export const PAYMENT_TRANSACTION_STATUS_LABELS: Record<PaymentTransactionStatus, string> = {
+  [PaymentTransactionStatus.PENDING]: 'En attente',
+  [PaymentTransactionStatus.SUCCESS]: 'Réussi',
+  [PaymentTransactionStatus.FAILED]: 'Échoué',
+  [PaymentTransactionStatus.EXPIRED]: 'Expiré',
+  [PaymentTransactionStatus.CANCELLED]: 'Annulé',
+};
+
+export const PAYMENT_TRANSACTION_STATUS_COLORS: Record<PaymentTransactionStatus, string> = {
+  [PaymentTransactionStatus.PENDING]: 'warning',
+  [PaymentTransactionStatus.SUCCESS]: 'emerald',
+  [PaymentTransactionStatus.FAILED]: 'error',
+  [PaymentTransactionStatus.EXPIRED]: 'gray',
+  [PaymentTransactionStatus.CANCELLED]: 'gray',
+};
+
+export const MOBILE_MONEY_OPERATOR_LABELS: Record<MobileMoneyOperator, string> = {
+  [MobileMoneyOperator.MTN]: 'MTN Mobile Money',
+  [MobileMoneyOperator.ORANGE]: 'Orange Money',
 };

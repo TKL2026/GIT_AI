@@ -1,9 +1,14 @@
 import type {
   ExpenseCategory,
+  MobileMoneyOperator,
   PaymentMethod,
+  PaymentProvider,
+  PaymentTransactionStatus,
   PurchaseOrderStatus,
   Role,
   StockMovementType,
+  SubscriptionPeriod,
+  SubscriptionStatus,
 } from './enums';
 
 export interface UserDto {
@@ -28,6 +33,7 @@ export interface OrganizationDto {
   modules: string[];
   onboardingStep: string | null;
   onboardingCompletedAt: string | null;
+  accessLocked: boolean;
 }
 
 export interface PendingInviteDto {
@@ -241,4 +247,46 @@ export interface AuthTokensDto {
 
 export interface AuthResponseDto extends AuthTokensDto {
   user: UserDto;
+}
+
+export interface PlanDto {
+  id: string;
+  code: string;
+  name: string;
+  price: number;
+  currency: string;
+  period: SubscriptionPeriod;
+  features: unknown;
+  isActive: boolean;
+}
+
+export interface SubscriptionDto {
+  id: string;
+  status: SubscriptionStatus;
+  plan: PlanDto | null;
+  startedAt: string | null;
+  currentPeriodEnd: string | null;
+  cancelledAt: string | null;
+}
+
+export interface PaymentTransactionDto {
+  id: string;
+  planId: string;
+  amount: number;
+  currency: string;
+  provider: PaymentProvider;
+  operator: MobileMoneyOperator;
+  phoneNumber: string;
+  status: PaymentTransactionStatus;
+  externalReference: string;
+  providerReference: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface CheckoutResultDto {
+  transactionId: string;
+  externalReference: string;
+  ussdCode: string | null;
+  status: string;
 }

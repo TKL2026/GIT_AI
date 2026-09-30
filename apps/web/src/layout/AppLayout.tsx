@@ -4,6 +4,7 @@ import {
   IconBoxSeam,
   IconBriefcase,
   IconChevronDown,
+  IconCreditCard,
   IconLayoutDashboard,
   IconLogout,
   IconMessageChatbot,
@@ -15,7 +16,7 @@ import {
 } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { FINANCE_ROLES, hasRole } from '../auth/roles';
+import { BILLING_ROLES, FINANCE_ROLES, hasRole } from '../auth/roles';
 import { EmailVerificationBanner } from '../components/EmailVerificationBanner';
 import { Logo } from '../components/Logo';
 import { useOrganization } from '../hooks/useOrganization';
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
   { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },
   { to: '/users', label: 'Utilisateurs', icon: IconUsers },
+  { to: '/billing', label: 'Abonnement', icon: IconCreditCard, roles: BILLING_ROLES },
 ];
 
 function isActive(pathname: string, to: string): boolean {

@@ -36,12 +36,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(exception instanceof Error ? exception.stack : exception);
     }
 
+    const code =
+      isHttpException && typeof exceptionResponse === 'object' && exceptionResponse !== null && 'code' in exceptionResponse
+        ? (exceptionResponse as Record<string, unknown>).code
+        : undefined;
+
     response.status(status).json({
       success: false,
       statusCode: status,
       path: request.url,
       timestamp: new Date().toISOString(),
       message,
+      ...(code !== undefined ? { code } : {}),
     });
   }
 }

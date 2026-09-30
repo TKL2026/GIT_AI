@@ -87,6 +87,42 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   DEMO_USER_EMAIL?: string;
+
+  /** Optionnel : sans ces variables, les routes /billing/checkout et le
+   * webhook CamPay répondent 503. Ne jamais mélanger sandbox/production. */
+  @IsOptional()
+  @IsIn(['sandbox', 'production'])
+  CAMPAY_ENV?: string;
+
+  /** Méthode d'authentification CamPay recommandée : un jeton qui n'expire
+   * jamais (dashboard CamPay > App Keys), utilisé directement sans échange
+   * préalable. Si absent, on retombe sur CAMPAY_USERNAME/CAMPAY_PASSWORD. */
+  @IsOptional()
+  @IsString()
+  CAMPAY_PERMANENT_TOKEN?: string;
+
+  /** Identifiant affiché dans le dashboard CamPay — jamais transmis dans les
+   * appels API, conservé ici uniquement pour référence/débogage. */
+  @IsOptional()
+  @IsString()
+  CAMPAY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  CAMPAY_USERNAME?: string;
+
+  @IsOptional()
+  @IsString()
+  CAMPAY_PASSWORD?: string;
+
+  @IsOptional()
+  @IsString()
+  CAMPAY_WEBHOOK_KEY?: string;
+
+  /** Optionnel : surcharge l'URL de base déduite de CAMPAY_ENV (utile pour tester). */
+  @IsOptional()
+  @IsString()
+  CAMPAY_BASE_URL?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

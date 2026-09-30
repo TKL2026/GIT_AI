@@ -1,14 +1,18 @@
-import { Text } from '@mantine/core';
+import { Anchor, Stack, Text } from '@mantine/core';
+import { COMPANY_INFO } from './companyInfo';
 import { LegalPageLayout } from './LegalPageLayout';
 
 export function ContactPage() {
   return (
     <LegalPageLayout title="Contact">
-      <Text c="dimmed">
-        Nos coordonnées de contact seront ajoutées ici prochainement. En attendant, si vous
-        souhaitez une démonstration de Copilote IA Business, créez directement votre espace
-        d'essai gratuit.
-      </Text>
+      <Stack gap="xs">
+        <Text c="dimmed">
+          Une question, un besoin spécifique, ou envie d'une offre sur mesure ? Écrivez-nous :
+        </Text>
+        <Anchor href={`mailto:${COMPANY_INFO.contactEmail}`} fw={600}>
+          {COMPANY_INFO.contactEmail}
+        </Anchor>
+      </Stack>
     </LegalPageLayout>
   );
 }
