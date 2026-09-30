@@ -4,6 +4,15 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # DNS embarqué de Docker : indispensable pour que nginx puisse RE-résoudre
+    # "api" après un redéploiement du conteneur api (celui-ci change d'adresse
+    # IP interne à chaque recréation). Sans ce resolver + la variable
+    # ci-dessous, proxy_pass résoudrait le nom une seule fois au démarrage de
+    # nginx et garderait l'ancienne IP en cache indéfiniment — tout
+    # redéploiement du service api sans redémarrer aussi le service web
+    # provoque alors des "connect() failed (113: Host is unreachable)".
+    resolver 127.0.0.11 valid=10s;
+
     gzip on;
     gzip_comp_level 5;
     gzip_min_length 256;
@@ -12,8 +21,17 @@ server {
     # Reverse-proxy vers le conteneur API : le frontend appelle /api en même
     # origine (VITE_API_URL=/api), aucune configuration CORS nécessaire en
     # production. ${API_UPSTREAM} est injecté par docker-compose (ex: api:3000).
+    # La variable $api_upstream (plutôt qu'une chaîne en dur dans proxy_pass)
+    # force nginx à repasser par le resolver ci-dessus à chaque requête au
+    # lieu de garder une IP résolue une seule fois au démarrage. Attention :
+    # dès qu'une variable est utilisée dans proxy_pass, nginx désactive le
+    # remplacement automatique du préfixe de location — on doit donc
+    # reconstruire nous-mêmes le chemin complet avec $request_uri (sinon
+    # toutes les requêtes /api/* arrivent à l'API comme un simple "/api/").
+    set $api_upstream http://${API_UPSTREAM};
+
     location /api/ {
-        proxy_pass http://${API_UPSTREAM}/api/;
+        proxy_pass $api_upstream$request_uri;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
