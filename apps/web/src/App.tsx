@@ -5,6 +5,7 @@ import { AppLayout } from './layout/AppLayout';
 import { AboutPage } from './pages/AboutPage';
 import { AcceptInvitePage } from './pages/AcceptInvitePage';
 import { BillingPage } from './pages/billing/BillingPage';
+import { CheckoutPage } from './pages/CheckoutPage';
 import { CommercialPage } from './pages/commercial/CommercialPage';
 import { CopilotPage } from './pages/copilot/CopilotPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -58,6 +59,7 @@ export function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/tarifs" element={<PricingPage />} />
         <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
 
         {/* Assistant d'inscription : authentifié dès l'écran Compte, mais
             sans le chrome applicatif (AppLayout) — l'utilisateur n'est pas

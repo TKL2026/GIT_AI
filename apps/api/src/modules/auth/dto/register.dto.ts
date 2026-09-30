@@ -31,4 +31,16 @@ export class RegisterDto {
   @IsString()
   @MinLength(1)
   lastName!: string;
+
+  /**
+   * Optionnel : code de l'offre payante choisie avant l'inscription (voir
+   * pendingPlan.ts côté frontend). Jamais un prix — le backend revérifie
+   * toujours que ce code correspond à un Plan actif réel avant de l'utiliser
+   * (voir AuthService#register). Absent = essai gratuit de 48h (comportement
+   * par défaut, inchangé).
+   */
+  @ApiPropertyOptional({ example: 'pro' })
+  @IsOptional()
+  @IsString()
+  planCode?: string;
 }

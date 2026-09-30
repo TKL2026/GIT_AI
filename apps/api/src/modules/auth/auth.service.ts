@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role, User } from '@prisma/client';
+import { Plan, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -53,6 +53,17 @@ export class AuthService {
       throw new ConflictException('Un compte existe déjà avec cet email.');
     }
 
+    // Offre payante choisie avant l'inscription : le frontend ne transmet
+    // qu'un code, jamais un prix — on revérifie ici qu'il correspond à un
+    // Plan actif réel avant de faire quoi que ce soit (source de vérité).
+    let chosenPlan: Plan | null = null;
+    if (dto.planCode) {
+      chosenPlan = await this.prisma.plan.findUnique({ where: { code: dto.planCode } });
+      if (!chosenPlan || !chosenPlan.isActive) {
+        throw new NotFoundException('Offre introuvable ou inactive.');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.$transaction(async (tx) => {
@@ -74,16 +85,28 @@ export class AuthService {
         },
       });
 
-      // Essai gratuit de 48h, démarré automatiquement à l'inscription.
-      const now = new Date();
-      await tx.subscription.create({
-        data: {
-          organizationId: organization.id,
-          status: 'TRIAL',
-          startedAt: now,
-          currentPeriodEnd: new Date(now.getTime() + 48 * 60 * 60 * 1000),
-        },
-      });
+      if (chosenPlan) {
+        // Offre payante : aucun essai de 48h accordé — bloqué jusqu'à
+        // confirmation d'un paiement réel (voir isSubscriptionLocked).
+        await tx.subscription.create({
+          data: {
+            organizationId: organization.id,
+            planId: chosenPlan.id,
+            status: 'AWAITING_PAYMENT',
+          },
+        });
+      } else {
+        // Essai gratuit de 48h, démarré automatiquement à l'inscription.
+        const now = new Date();
+        await tx.subscription.create({
+          data: {
+            organizationId: organization.id,
+            status: 'TRIAL',
+            startedAt: now,
+            currentPeriodEnd: new Date(now.getTime() + 48 * 60 * 60 * 1000),
+          },
+        });
+      }
 
       return createdUser;
     });

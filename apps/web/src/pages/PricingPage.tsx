@@ -1,26 +1,11 @@
-import '../marketing/marketing.css';
-import { MarketingFooter } from '../marketing/MarketingFooter';
-import { MarketingHeader } from '../marketing/MarketingHeader';
-import { FinalCtaSection } from '../marketing/sections/FinalCtaSection';
-import { PricingFaqSection } from '../marketing/sections/PricingFaqSection';
-import { PricingIntroSection } from '../marketing/sections/PricingIntroSection';
-import { PricingPhilosophySection } from '../marketing/sections/PricingPhilosophySection';
-import { PricingPlansSection } from '../marketing/sections/PricingPlansSection';
-import { PricingSignupHelpSection } from '../marketing/sections/PricingSignupHelpSection';
+import { Navigate } from 'react-router-dom';
 
+/**
+ * Les tarifs vivent désormais directement dans la landing page
+ * (LandingPage.tsx, section #tarifs) — source unique, pas de duplication.
+ * Cette route est conservée pour ne pas casser un lien/favori existant vers
+ * /tarifs, mais redirige immédiatement vers l'ancre correspondante.
+ */
 export function PricingPage() {
-  return (
-    <>
-      <MarketingHeader />
-      <main>
-        <PricingIntroSection />
-        <PricingPlansSection />
-        <PricingSignupHelpSection />
-        <PricingPhilosophySection />
-        <PricingFaqSection />
-        <FinalCtaSection />
-      </main>
-      <MarketingFooter />
-    </>
-  );
+  return <Navigate to="/#tarifs" replace />;
 }

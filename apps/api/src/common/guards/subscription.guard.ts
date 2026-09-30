@@ -47,10 +47,14 @@ export class SubscriptionGuard {
         .catch((error) => this.logger.warn(`Échec auto-expiration essai : ${error}`));
     }
 
-    throw new ForbiddenException({
-      message:
-        "Votre période d'essai est terminée. Votre espace et vos données sont conservés. Choisissez une offre pour réactiver votre accès.",
-      code: 'SUBSCRIPTION_EXPIRED',
-    });
+    const message =
+      subscription?.status === 'AWAITING_PAYMENT'
+        ? 'Votre inscription est presque terminée. Finalisez le paiement de votre offre pour activer votre accès.'
+        : "Votre période d'essai est terminée. Votre espace et vos données sont conservés. Choisissez une offre pour réactiver votre accès.";
+
+    // Même code pour les deux cas : le frontend ne distingue pas la raison
+    // pour déclencher la redirection (voir main.tsx), seule la page de
+    // suspension affine le message affiché via GET /billing/subscription.
+    throw new ForbiddenException({ message, code: 'SUBSCRIPTION_EXPIRED' });
   }
 }

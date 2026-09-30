@@ -194,6 +194,21 @@ describe('BillingService', () => {
       expect(prisma.paymentTransaction.updateMany).not.toHaveBeenCalled();
     });
 
+    it("un statut CamPay PENDING (l'utilisateur n'a pas encore répondu à l'invite USSD) ne marque PAS la transaction FAILED", async () => {
+      prisma.paymentTransaction.findUnique.mockResolvedValue(pendingTransactionWith());
+
+      await billingService.applyPaymentResult({
+        reference: 'campay-ref-1',
+        externalReference: baseTransaction.externalReference,
+        status: 'PENDING',
+        amount: 5000,
+        currency: 'XAF',
+      });
+
+      expect(prisma.paymentTransaction.updateMany).not.toHaveBeenCalled();
+      expect(prisma.subscription.upsert).not.toHaveBeenCalled();
+    });
+
     it('rejette (FAILED) si le montant ne correspond pas, sans activer d’abonnement', async () => {
       prisma.paymentTransaction.findUnique.mockResolvedValue(pendingTransactionWith());
 
@@ -247,6 +262,33 @@ describe('BillingService', () => {
         expect.objectContaining({
           where: { organizationId },
           create: expect.objectContaining({ status: 'ACTIVE', planId: starterPlan.id }),
+        }),
+      );
+    });
+
+    it('active ACTIVE depuis AWAITING_PAYMENT (offre payante choisie à l’inscription, jamais activée) quand le paiement est confirmé', async () => {
+      prisma.paymentTransaction.findUnique.mockResolvedValue(pendingTransactionWith());
+      prisma.subscription.findUnique.mockResolvedValue({
+        id: 'sub-awaiting',
+        organizationId,
+        planId: starterPlan.id,
+        status: 'AWAITING_PAYMENT',
+        startedAt: null,
+        currentPeriodEnd: null,
+      });
+
+      await billingService.applyPaymentResult({
+        reference: 'campay-ref-1',
+        externalReference: baseTransaction.externalReference,
+        status: 'SUCCESSFUL',
+        amount: 5000,
+        currency: 'XAF',
+      });
+
+      expect(prisma.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { organizationId },
+          update: expect.objectContaining({ status: 'ACTIVE', planId: starterPlan.id }),
         }),
       );
     });

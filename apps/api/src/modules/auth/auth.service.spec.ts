@@ -15,9 +15,11 @@ describe('AuthService', () => {
     refreshToken: { create: jest.Mock; findFirst: jest.Mock; update: jest.Mock; updateMany: jest.Mock };
     organization: { create: jest.Mock };
     user: { create: jest.Mock; update: jest.Mock };
+    plan: { findUnique: jest.Mock };
     passwordResetToken: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
     emailVerificationToken: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
   };
+  let subscriptionCreate: jest.Mock;
   let usersService: { findByEmail: jest.Mock; findById: jest.Mock };
   let jwtService: { signAsync: jest.Mock; verifyAsync: jest.Mock };
   let configService: { get: jest.Mock };
@@ -41,6 +43,8 @@ describe('AuthService', () => {
   beforeEach(async () => {
     fakeUser.passwordHash = await bcrypt.hash('Password123!', 10);
 
+    subscriptionCreate = jest.fn().mockResolvedValue({});
+
     prisma = {
       $transaction: jest.fn(async (arg) =>
         Array.isArray(arg)
@@ -48,7 +52,7 @@ describe('AuthService', () => {
           : arg({
               organization: { create: jest.fn().mockResolvedValue({ id: 'org-1', name: 'Boutique' }) },
               user: { create: jest.fn().mockResolvedValue(fakeUser) },
-              subscription: { create: jest.fn().mockResolvedValue({}) },
+              subscription: { create: subscriptionCreate },
             }),
       ),
       refreshToken: {
@@ -59,6 +63,7 @@ describe('AuthService', () => {
       },
       organization: { create: jest.fn() },
       user: { create: jest.fn(), update: jest.fn().mockResolvedValue(fakeUser) },
+      plan: { findUnique: jest.fn() },
       passwordResetToken: {
         create: jest.fn().mockResolvedValue({}),
         findUnique: jest.fn(),
@@ -132,6 +137,107 @@ describe('AuthService', () => {
         fakeUser.email,
         expect.stringContaining('/verify-email?token='),
       );
+    });
+
+    it("sans planCode : crée une Subscription TRIAL avec 48h d'essai (comportement par défaut inchangé)", async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+
+      await authService.register({
+        organizationName: 'Boutique',
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+      });
+
+      expect(prisma.plan.findUnique).not.toHaveBeenCalled();
+      expect(subscriptionCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          organizationId: 'org-1',
+          status: 'TRIAL',
+          startedAt: expect.any(Date),
+          currentPeriodEnd: expect.any(Date),
+        }),
+      });
+      const call = subscriptionCreate.mock.calls[0][0].data;
+      expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(48 * 60 * 60 * 1000);
+    });
+
+    it('avec planCode=standard : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période de 48h', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.plan.findUnique.mockResolvedValue({ id: 'plan-standard', code: 'standard', isActive: true, price: 5000 });
+
+      await authService.register({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+        planCode: 'standard',
+      });
+
+      expect(prisma.plan.findUnique).toHaveBeenCalledWith({ where: { code: 'standard' } });
+      expect(subscriptionCreate).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org-1',
+          planId: 'plan-standard',
+          status: 'AWAITING_PAYMENT',
+        },
+      });
+    });
+
+    it('avec planCode=pro : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période de 48h', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.plan.findUnique.mockResolvedValue({ id: 'plan-pro', code: 'pro', isActive: true, price: 10000 });
+
+      await authService.register({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+        planCode: 'pro',
+      });
+
+      expect(subscriptionCreate).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org-1',
+          planId: 'plan-pro',
+          status: 'AWAITING_PAYMENT',
+        },
+      });
+    });
+
+    it("lève une NotFoundException et ne crée rien si planCode ne correspond à aucune offre (jamais confiance au frontend)", async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.plan.findUnique.mockResolvedValue(null);
+
+      await expect(
+        authService.register({
+          email: 'owner@demo.com',
+          password: 'Password123!',
+          firstName: 'Demo',
+          lastName: 'Owner',
+          planCode: 'inexistant',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('lève une NotFoundException si le plan existe mais est inactif', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.plan.findUnique.mockResolvedValue({ id: 'plan-old', code: 'starter', isActive: false });
+
+      await expect(
+        authService.register({
+          email: 'owner@demo.com',
+          password: 'Password123!',
+          firstName: 'Demo',
+          lastName: 'Owner',
+          planCode: 'starter',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     it("lève une ConflictException si l'email existe déjà", async () => {

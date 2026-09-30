@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/apiClient';
+import { consumePendingPlan, peekPendingPlan } from '../lib/pendingPlan';
 import { OnboardingShell } from '../onboarding/OnboardingShell';
 
 interface RegisterFormValues {
@@ -35,14 +36,26 @@ export function RegisterPage() {
   async function handleSubmit(values: RegisterFormValues) {
     setError(null);
     setIsSubmitting(true);
+    // Lecture seule ici (pas de consommation) : si l'inscription échoue
+    // (ex: email déjà utilisé), l'offre choisie doit rester disponible pour
+    // une nouvelle tentative.
+    const planCode = peekPendingPlan() ?? undefined;
     try {
       await register({
         email: values.email,
         password: values.password,
         firstName: values.firstName,
         lastName: values.lastName,
+        planCode,
       });
-      navigate('/onboarding/company');
+      if (planCode) {
+        // Offre payante : aucun essai, direction le paiement — l'onboarding
+        // se fera une fois l'abonnement activé (voir ProtectedRoute).
+        consumePendingPlan();
+        navigate(`/checkout?plan=${planCode}`);
+      } else {
+        navigate('/onboarding/company');
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Inscription impossible.');
     } finally {
@@ -55,13 +68,29 @@ export function RegisterPage() {
       <form onSubmit={form.onSubmit(handleSubmit)} aria-label="Créer un compte">
         <Stack gap="md">
           <SimpleGrid cols={2}>
-            <TextInput label="Prénom" placeholder="Awa" required {...form.getInputProps('firstName')} />
-            <TextInput label="Nom" placeholder="Diallo" required {...form.getInputProps('lastName')} />
+            <TextInput
+              label="Prénom"
+              placeholder="Awa"
+              name="given-name"
+              autoComplete="given-name"
+              required
+              {...form.getInputProps('firstName')}
+            />
+            <TextInput
+              label="Nom"
+              placeholder="Diallo"
+              name="family-name"
+              autoComplete="family-name"
+              required
+              {...form.getInputProps('lastName')}
+            />
           </SimpleGrid>
 
           <TextInput
             type="email"
             label="Adresse e-mail"
+            name="email"
+            autoComplete="email"
             placeholder="vous@entreprise.com"
             required
             {...form.getInputProps('email')}
@@ -71,6 +100,8 @@ export function RegisterPage() {
             label="Mot de passe"
             placeholder="Votre mot de passe"
             description="Au moins 8 caractères."
+            name="new-password"
+            autoComplete="new-password"
             required
             {...form.getInputProps('password')}
           />

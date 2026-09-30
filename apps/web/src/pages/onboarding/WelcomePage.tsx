@@ -13,7 +13,7 @@ export function WelcomePage() {
   const navigate = useNavigate();
 
   return (
-    <OnboardingShell title="Bienvenue dans Copilote IA Business 👋" subtitle="Votre espace est prêt.">
+    <OnboardingShell title="Bienvenue dans Copilote IA Business" subtitle="Votre espace est prêt.">
       <Stack gap="lg">
         <Stack gap="sm">
           {CHECKLIST.map((item) => (

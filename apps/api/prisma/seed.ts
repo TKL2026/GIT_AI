@@ -14,7 +14,7 @@ async function seedPlans() {
   for (const plan of PLANS) {
     await prisma.plan.upsert({
       where: { code: plan.code },
-      update: {},
+      update: { name: plan.name, price: plan.price, features: plan.features },
       create: { ...plan, currency: 'XAF', period: 'MONTHLY' },
     });
   }

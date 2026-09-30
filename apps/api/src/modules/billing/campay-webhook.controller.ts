@@ -1,4 +1,4 @@
-import { Body, Controller, Logger, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Query, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
@@ -33,15 +33,36 @@ export class CamPayWebhookController {
 
   @Public()
   @Post('webhook')
-  async receiveWebhook(@Body() payload: CamPayCallbackPayload, @Res() res: Response): Promise<void> {
+  async receiveWebhookPost(@Body() payload: CamPayCallbackPayload, @Res() res: Response): Promise<void> {
+    await this.handleCallback(payload, res, 'POST');
+  }
+
+  /**
+   * CamPay livre en réalité son callback en GET, avec tous les champs en
+   * query string (constaté sur une vraie tentative CamPay -> 404, faute de
+   * route GET ici). Le format POST/JSON ci-dessus est conservé — jamais
+   * confirmé comme réellement utilisé par CamPay, mais inoffensif à garder
+   * et déjà couvert par les tests existants.
+   */
+  @Public()
+  @Get('webhook')
+  async receiveWebhookGet(@Query() payload: CamPayCallbackPayload, @Res() res: Response): Promise<void> {
+    await this.handleCallback(payload, res, 'GET');
+  }
+
+  private async handleCallback(
+    payload: CamPayCallbackPayload,
+    res: Response,
+    method: 'GET' | 'POST',
+  ): Promise<void> {
     if (!this.camPayService.verifyWebhookSignature(payload.signature)) {
-      this.logger.warn('POST /payments/campay/webhook rejeté : signature invalide ou absente.');
+      this.logger.warn(`${method} /payments/campay/webhook rejeté : signature invalide ou absente.`);
       res.status(403).send();
       return;
     }
 
     if (!payload.external_reference || !payload.reference || !payload.status) {
-      this.logger.warn('POST /payments/campay/webhook rejeté : champs requis manquants.');
+      this.logger.warn(`${method} /payments/campay/webhook rejeté : champs requis manquants.`);
       res.status(400).send();
       return;
     }

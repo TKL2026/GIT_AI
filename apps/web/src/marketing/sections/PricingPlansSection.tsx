@@ -1,17 +1,22 @@
 import { Badge, Button, Card, Container, Group, List, SimpleGrid, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
+import { clearPendingPlan, setPendingPlan } from '../../lib/pendingPlan';
 import { COMPANY_INFO } from '../../pages/legal/companyInfo';
 import { Reveal } from '../Reveal';
 
 interface PricingPlan {
+  /** Code du Plan en base (apps/api/prisma/seed.ts) — null pour l'essai
+   * gratuit (ne correspond à aucun Plan payant) et l'offre sur mesure
+   * (contact uniquement, pas de checkout self-service). */
+  code: 'standard' | 'pro' | null;
   name: string;
   price: string;
   period?: string;
   description: string;
   features: string[];
   buttonLabel: string;
-  buttonTo?: string;
   buttonHref?: string;
   highlight?: boolean;
   badge?: string;
@@ -19,6 +24,7 @@ interface PricingPlan {
 
 const PLANS: PricingPlan[] = [
   {
+    code: null,
     name: 'Essai gratuit',
     price: '0 FCFA',
     period: '48 heures',
@@ -31,9 +37,9 @@ const PLANS: PricingPlan[] = [
       'Aucun engagement',
     ],
     buttonLabel: 'Commencer gratuitement',
-    buttonTo: '/register',
   },
   {
+    code: 'standard',
     name: 'Standard',
     price: '5 000 FCFA',
     period: 'mois',
@@ -50,9 +56,9 @@ const PLANS: PricingPlan[] = [
       'Accès au Copilote IA (fonctionnalités de base)',
     ],
     buttonLabel: 'Choisir Standard',
-    buttonTo: '/register',
   },
   {
+    code: 'pro',
     name: 'Pro',
     price: '10 000 FCFA',
     period: 'mois',
@@ -69,11 +75,11 @@ const PLANS: PricingPlan[] = [
       'Notifications et rapports WhatsApp',
     ],
     buttonLabel: 'Choisir Pro',
-    buttonTo: '/register',
     highlight: true,
     badge: 'Pour les entreprises en croissance',
   },
   {
+    code: null,
     name: 'Sur mesure',
     price: 'À partir de 25 000 FCFA',
     period: 'mois',
@@ -92,6 +98,30 @@ const PLANS: PricingPlan[] = [
 ];
 
 export function PricingPlansSection() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  // Essai gratuit : pas d'offre payante à retenir — efface toute intention
+  // précédente pour ne pas rediriger un nouvel essai vers un checkout d'une
+  // offre choisie lors d'une session précédente.
+  function handleChooseFreeTrial() {
+    clearPendingPlan();
+    navigate('/register');
+  }
+
+  // Offre payante : un utilisateur déjà connecté va directement au checkout ;
+  // sinon on mémorise l'offre choisie et ProtectedRoute s'occupera de
+  // rediriger vers /checkout une fois l'inscription/connexion (et
+  // l'onboarding si besoin) terminés.
+  function handleChoosePaidPlan(code: string) {
+    if (isAuthenticated) {
+      navigate(`/checkout?plan=${code}`);
+      return;
+    }
+    setPendingPlan(code);
+    navigate('/register');
+  }
+
   return (
     <Container size="lg" py={40} id="tarifs">
       <Reveal>
@@ -138,18 +168,17 @@ export function PricingPlansSection() {
                   ))}
                 </List>
 
-                {plan.buttonTo ? (
+                {plan.buttonHref ? (
+                  <Button component="a" href={plan.buttonHref} variant="default" fullWidth mt="sm">
+                    {plan.buttonLabel}
+                  </Button>
+                ) : (
                   <Button
-                    component={Link}
-                    to={plan.buttonTo}
+                    onClick={() => (plan.code ? handleChoosePaidPlan(plan.code) : handleChooseFreeTrial())}
                     variant={plan.highlight ? 'filled' : 'default'}
                     fullWidth
                     mt="sm"
                   >
-                    {plan.buttonLabel}
-                  </Button>
-                ) : (
-                  <Button component="a" href={plan.buttonHref} variant="default" fullWidth mt="sm">
                     {plan.buttonLabel}
                   </Button>
                 )}

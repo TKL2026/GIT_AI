@@ -14,6 +14,11 @@ interface SubscriptionLike {
 export function isSubscriptionLocked(subscription: SubscriptionLike | null): boolean {
   if (!subscription) return false;
   if (subscription.status === 'EXPIRED') return true;
+  // Offre payante choisie à l'inscription, paiement jamais confirmé : aucun
+  // accès n'a jamais été accordé, il n'y a donc rien à faire expirer ici —
+  // verrouillé inconditionnellement tant que le webhook n'a pas activé
+  // l'abonnement (voir BillingService#activateSubscription).
+  if (subscription.status === 'AWAITING_PAYMENT') return true;
   if (
     subscription.status === 'TRIAL' &&
     subscription.currentPeriodEnd !== null &&

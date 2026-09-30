@@ -49,7 +49,12 @@ enum ExpenseCategory {
 }
 
 enum SubscriptionStatus {
+  /// Essai gratuit de 48h en cours — accès complet.
   TRIAL
+  /// Offre payante choisie à l'inscription, paiement jamais confirmé — aucun
+  /// accès, distinct de TRIAL (jamais eu d'essai) et de EXPIRED (essai
+  /// consommé) : sémantique métier différente, voir subscription-status.util.ts.
+  AWAITING_PAYMENT
   ACTIVE
   PAST_DUE
   EXPIRED

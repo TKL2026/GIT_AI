@@ -37,6 +37,7 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.TRIAL]: 'Essai',
+  [SubscriptionStatus.AWAITING_PAYMENT]: 'En attente de paiement',
   [SubscriptionStatus.ACTIVE]: 'Actif',
   [SubscriptionStatus.PAST_DUE]: 'Paiement en retard',
   [SubscriptionStatus.EXPIRED]: 'Expiré',
@@ -45,6 +46,7 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
 
 export const SUBSCRIPTION_STATUS_COLORS: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.TRIAL]: 'gray',
+  [SubscriptionStatus.AWAITING_PAYMENT]: 'warning',
   [SubscriptionStatus.ACTIVE]: 'emerald',
   [SubscriptionStatus.PAST_DUE]: 'warning',
   [SubscriptionStatus.EXPIRED]: 'error',

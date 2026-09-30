@@ -13,7 +13,7 @@ interface SectionLink {
 const SECTION_LINKS: SectionLink[] = [
   { href: '#produit', label: 'Produit' },
   { href: '#copilote-ia', label: 'Copilote IA' },
-  { to: '/tarifs', label: 'Tarifs' },
+  { to: '/#tarifs', label: 'Tarifs' },
 ];
 
 function SectionAnchor({ link, onClick, ...props }: { link: SectionLink; onClick?: () => void } & Record<string, unknown>): ReactNode {

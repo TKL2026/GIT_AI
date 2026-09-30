@@ -37,6 +37,7 @@ export enum ExpenseCategory {
 
 export enum SubscriptionStatus {
   TRIAL = 'TRIAL',
+  AWAITING_PAYMENT = 'AWAITING_PAYMENT',
   ACTIVE = 'ACTIVE',
   PAST_DUE = 'PAST_DUE',
   EXPIRED = 'EXPIRED',

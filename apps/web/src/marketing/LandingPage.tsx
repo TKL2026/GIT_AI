@@ -1,4 +1,6 @@
 import './marketing.css';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MarketingFooter } from './MarketingFooter';
 import { MarketingHeader } from './MarketingHeader';
 import { AudienceSection } from './sections/AudienceSection';
@@ -9,7 +11,10 @@ import { FinalCtaSection } from './sections/FinalCtaSection';
 import { HeroSection } from './sections/HeroSection';
 import { HowItWorksSection } from './sections/HowItWorksSection';
 import { IntegrationsSection } from './sections/IntegrationsSection';
-import { PricingSection } from './sections/PricingSection';
+import { PricingIntroSection } from './sections/PricingIntroSection';
+import { PricingPhilosophySection } from './sections/PricingPhilosophySection';
+import { PricingPlansSection } from './sections/PricingPlansSection';
+import { PricingSignupHelpSection } from './sections/PricingSignupHelpSection';
 import { ProblemSection } from './sections/ProblemSection';
 import { ProductProofSection } from './sections/ProductProofSection';
 import { ProductSection } from './sections/ProductSection';
@@ -19,6 +24,20 @@ import { WhatsAppSection } from './sections/WhatsAppSection';
 import { WhySection } from './sections/WhySection';
 
 export function LandingPage() {
+  const location = useLocation();
+
+  // La navigation SPA (react-router) ne fait pas défiler automatiquement
+  // vers une ancre lors d'un changement de route (contrairement à une
+  // navigation navigateur classique) — nécessaire pour que "Tarifs" depuis
+  // le header/footer (Link to="/#tarifs") fonctionne aussi depuis une autre
+  // page, pas seulement quand on est déjà sur "/".
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    const element = document.getElementById(id);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.hash]);
+
   return (
     <>
       <MarketingHeader />
@@ -36,7 +55,10 @@ export function LandingPage() {
         <ProductProofSection />
         <TrustSection />
         <TrustedBySection />
-        <PricingSection />
+        <PricingIntroSection />
+        <PricingPlansSection />
+        <PricingSignupHelpSection />
+        <PricingPhilosophySection />
         <FaqSection />
         <FinalCtaSection />
       </main>

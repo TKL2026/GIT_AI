@@ -183,6 +183,16 @@ export class BillingService {
         return;
       }
 
+      // CamPay documente explicitement PENDING comme statut intermédiaire
+      // (le client n'a pas encore répondu à l'invite USSD sur son téléphone)
+      // — ce n'est PAS un échec, juste "pas encore décidé". La revérification
+      // active (getTransactionForOrganization) peut recevoir ce statut avant
+      // que le webhook final n'arrive : ne rien modifier, un appel ultérieur
+      // (webhook ou nouvelle revérification) tranchera avec un statut final.
+      if (event.status === 'PENDING') {
+        return;
+      }
+
       const amountMatches = Number(event.amount) === transaction.amount;
       const currencyMatches = event.currency === transaction.currency;
       const referenceMatches = !transaction.providerReference || transaction.providerReference === event.reference;

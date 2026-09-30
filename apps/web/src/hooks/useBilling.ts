@@ -40,7 +40,9 @@ export function useCheckout() {
   });
 }
 
-export function invalidateBillingAfterPayment(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY });
-  queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY });
+export function invalidateBillingAfterPayment(queryClient: ReturnType<typeof useQueryClient>): Promise<unknown> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY }),
+  ]);
 }
