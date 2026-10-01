@@ -1,6 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FEATURES } from '@copilote/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { CommercialService } from './commercial.service';
 import { CommercialLimitQueryDto } from './dto/commercial-limit-query.dto';
@@ -10,6 +12,7 @@ import { ProductToPushResponseDto } from './dto/product-to-push-response.dto';
 
 @ApiTags('commercial')
 @ApiBearerAuth()
+@RequireFeature(FEATURES.COMMERCIAL)
 @Controller('commercial')
 export class CommercialController {
   constructor(private readonly commercialService: CommercialService) {}

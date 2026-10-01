@@ -1,4 +1,5 @@
 import type { ChatMessageDto } from '@copilote/shared';
+import { FEATURES } from '@copilote/shared';
 import {
   Button,
   Chip,
@@ -37,10 +38,12 @@ import { useCopilotChat, useDailyReport } from '../../hooks/useCopilot';
 import { useProductsToPush } from '../../hooks/useCommercial';
 import { useFraudAnomalies } from '../../hooks/useFraud';
 import { useReplenishmentForecast } from '../../hooks/useForecast';
+import { useOrganization } from '../../hooks/useOrganization';
 import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
 import { useStockAlerts } from '../../hooks/useStock';
 import { useSendWhatsAppDailyReport } from '../../hooks/useWhatsApp';
 import { ApiError } from '../../lib/apiClient';
+import { hasFeature } from '../../lib/entitlements';
 import { formatCurrency } from '../../lib/format';
 import { PurchaseOrderFormModal } from '../purchases/PurchaseOrderFormModal';
 
@@ -63,11 +66,18 @@ export function CopilotPage() {
   const sendWhatsAppReport = useSendWhatsAppDailyReport();
   const isBusy = chat.isPending || dailyReport.isPending || sendWhatsAppReport.isPending;
 
+  const { data: organization } = useOrganization();
+  const canSeeFraud = hasFeature(organization, FEATURES.FRAUD);
+  const canSeeForecast = hasFeature(organization, FEATURES.FORECAST);
+  const canSeePurchasingAi = hasFeature(organization, FEATURES.PURCHASING_AI);
+  const canSeeCommercial = hasFeature(organization, FEATURES.COMMERCIAL);
+  const canSeeWhatsApp = hasFeature(organization, FEATURES.WHATSAPP);
+
   const { data: alerts = [] } = useStockAlerts();
-  const { data: anomalies = [] } = useFraudAnomalies();
-  const { data: forecast = [] } = useReplenishmentForecast();
-  const { data: purchaseRecommendations = [] } = usePurchaseRecommendations();
-  const { data: productsToPush = [] } = useProductsToPush();
+  const { data: anomalies = [] } = useFraudAnomalies(canSeeFraud);
+  const { data: forecast = [] } = useReplenishmentForecast(canSeeForecast);
+  const { data: purchaseRecommendations = [] } = usePurchaseRecommendations(canSeePurchasingAi);
+  const { data: productsToPush = [] } = useProductsToPush(canSeeCommercial);
 
   const [orderModalOpened, { open: openOrderModal, close: closeOrderModal }] = useDisclosure(false);
   const [prefill, setPrefill] = useState<{ item: { productId: string; quantity: number; unitCost?: number }; supplierId?: string } | null>(null);
@@ -171,15 +181,17 @@ export function CopilotPage() {
             >
               Rapport du jour
             </Button>
-            <Button
-              variant="light"
-              color="green"
-              leftSection={<IconBrandWhatsapp size={16} />}
-              onClick={handleSendWhatsAppReport}
-              disabled={isBusy}
-            >
-              Envoyer par WhatsApp
-            </Button>
+            {canSeeWhatsApp && (
+              <Button
+                variant="light"
+                color="green"
+                leftSection={<IconBrandWhatsapp size={16} />}
+                onClick={handleSendWhatsAppReport}
+                disabled={isBusy}
+              >
+                Envoyer par WhatsApp
+              </Button>
+            )}
             <Button
               variant="subtle"
               color="gray"

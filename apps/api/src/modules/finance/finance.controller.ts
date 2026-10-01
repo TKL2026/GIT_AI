@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { FEATURES } from '@copilote/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { FinanceQueryDto } from './dto/finance-query.dto';
@@ -19,6 +21,7 @@ export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
   @Get('summary')
+  @RequireFeature(FEATURES.FINANCE_BASIC)
   @ApiOkResponse({ type: FinanceSummaryResponseDto })
   getSummary(
     @CurrentUser() currentUser: AuthenticatedUser,
@@ -28,6 +31,7 @@ export class FinanceController {
   }
 
   @Get('products-profitability')
+  @RequireFeature(FEATURES.FINANCE_ADVANCED)
   @ApiOkResponse({ type: [ProductProfitabilityResponseDto] })
   getProductsProfitability(
     @CurrentUser() currentUser: AuthenticatedUser,
@@ -41,6 +45,7 @@ export class FinanceController {
   }
 
   @Get('monthly-trend')
+  @RequireFeature(FEATURES.FINANCE_ADVANCED)
   @ApiOkResponse({ type: [MonthlyFinanceTrendResponseDto] })
   getMonthlyTrend(
     @CurrentUser() currentUser: AuthenticatedUser,

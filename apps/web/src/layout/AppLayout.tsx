@@ -1,3 +1,4 @@
+import { FEATURES, Role, type Feature } from '@copilote/shared';
 import { AppShell, Burger, Divider, Group, Menu, NavLink, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -20,13 +21,20 @@ import { BILLING_ROLES, FINANCE_ROLES, hasRole } from '../auth/roles';
 import { EmailVerificationBanner } from '../components/EmailVerificationBanner';
 import { Logo } from '../components/Logo';
 import { useOrganization } from '../hooks/useOrganization';
+import { hasFeature } from '../lib/entitlements';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  to: string;
+  label: string;
+  icon: typeof IconLayoutDashboard;
+  roles?: Role[];
+  feature?: Feature;
+}[] = [
   { to: '/dashboard', label: 'Tableau de bord', icon: IconLayoutDashboard },
   { to: '/products', label: 'Produits', icon: IconPackage },
   { to: '/stock', label: 'Stock', icon: IconBoxSeam },
   { to: '/sales', label: 'Ventes', icon: IconReceipt },
-  { to: '/commercial', label: 'Commercial', icon: IconBriefcase },
+  { to: '/commercial', label: 'Commercial', icon: IconBriefcase, feature: FEATURES.COMMERCIAL },
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
   { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },
@@ -43,7 +51,11 @@ export function AppLayout() {
   const { user, logout } = useAuth();
   const { data: organization } = useOrganization();
   const location = useLocation();
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.roles || hasRole(user, item.roles));
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) =>
+      (!item.roles || hasRole(user, item.roles)) &&
+      (!item.feature || hasFeature(organization, item.feature)),
+  );
 
   return (
     <AppShell

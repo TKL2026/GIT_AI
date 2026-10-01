@@ -2,7 +2,9 @@ import { Controller, Post, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { FEATURES } from '@copilote/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { CopilotService } from '../copilot/copilot.service';
@@ -13,6 +15,7 @@ import { WhatsAppService } from './whatsapp.service';
 @ApiTags('whatsapp')
 @ApiBearerAuth()
 @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR)
+@RequireFeature(FEATURES.WHATSAPP)
 @Controller('whatsapp')
 export class WhatsAppController {
   constructor(

@@ -10,6 +10,7 @@ import type {
   SubscriptionPeriod,
   SubscriptionStatus,
 } from './enums';
+import type { Feature } from './features';
 
 export interface UserDto {
   id: string;
@@ -34,6 +35,9 @@ export interface OrganizationDto {
   onboardingStep: string | null;
   onboardingCompletedAt: string | null;
   accessLocked: boolean;
+  /** Représentation UX uniquement — chaque fonctionnalité reste protégée
+   * indépendamment côté backend (FeatureGuard), source d'autorité réelle. */
+  features: Feature[];
 }
 
 export interface PendingInviteDto {

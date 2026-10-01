@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { Feature } from '@copilote/shared';
 import { isSubscriptionLocked } from '../../../common/subscription/subscription-status.util';
 import { OrganizationWithSubscription } from '../organizations.service';
 
@@ -38,7 +39,13 @@ export class OrganizationResponseDto {
   @ApiProperty()
   accessLocked!: boolean;
 
-  static fromEntity(organization: OrganizationWithSubscription): OrganizationResponseDto {
+  /** Représentation UX uniquement — le frontend peut s'en servir pour
+   * afficher/masquer des fonctionnalités, mais chaque endpoint réel reste
+   * protégé indépendamment par FeatureGuard côté backend (source d'autorité). */
+  @ApiProperty({ type: [String] })
+  features!: Feature[];
+
+  static fromEntity(organization: OrganizationWithSubscription, features: Feature[]): OrganizationResponseDto {
     const dto = new OrganizationResponseDto();
     dto.id = organization.id;
     dto.name = organization.name;
@@ -51,6 +58,7 @@ export class OrganizationResponseDto {
     dto.onboardingStep = organization.onboardingStep;
     dto.onboardingCompletedAt = organization.onboardingCompletedAt;
     dto.accessLocked = isSubscriptionLocked(organization.subscription);
+    dto.features = features;
     return dto;
   }
 }

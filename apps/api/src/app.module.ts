@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { EntitlementsModule } from './common/entitlements/entitlements.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { FeatureGuard } from './common/guards/feature.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionGuard } from './common/guards/subscription.guard';
@@ -38,6 +40,7 @@ import { PrismaModule } from './prisma/prisma.module';
       throttlers: [{ ttl: 60000, limit: 120 }],
     }),
     PrismaModule,
+    EntitlementsModule,
     HealthModule,
     AuthModule,
     UsersModule,
@@ -61,6 +64,7 @@ import { PrismaModule } from './prisma/prisma.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },
+    { provide: APP_GUARD, useClass: FeatureGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },

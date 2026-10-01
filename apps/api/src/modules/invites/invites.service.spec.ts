@@ -1,6 +1,6 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
@@ -15,8 +15,10 @@ describe('InvitesService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      count: jest.Mock;
     };
-    user: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock; create: jest.Mock; count: jest.Mock };
+    subscription: { findUnique: jest.Mock };
   };
   let authService: { issueTokens: jest.Mock };
   let mailService: { sendInviteEmail: jest.Mock };
@@ -38,21 +40,29 @@ describe('InvitesService', () => {
     organization: { name: 'Boutique Test' },
   };
 
+  /** Le tx passé au callback $transaction reprend les mêmes mocks que
+   * `prisma` (create/accept lisent et écrivent sur les mêmes tables) — évite
+   * de dupliquer les attentes selon qu'on est dans une transaction ou non. */
+  function buildTx() {
+    return {
+      subscription: prisma.subscription,
+      user: { ...prisma.user, create: jest.fn().mockResolvedValue({ id: 'new-user', email: baseInvite.email }) },
+      pendingInvite: { ...prisma.pendingInvite, update: jest.fn().mockResolvedValue({}) },
+    };
+  }
+
   beforeEach(() => {
     prisma = {
-      $transaction: jest.fn(async (cb) =>
-        cb({
-          user: { create: jest.fn().mockResolvedValue({ id: 'new-user', email: baseInvite.email }) },
-          pendingInvite: { update: jest.fn().mockResolvedValue({}) },
-        }),
-      ),
+      $transaction: jest.fn(async (cb) => cb(buildTx())),
       pendingInvite: {
         create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
-      user: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+      subscription: { findUnique: jest.fn().mockResolvedValue(null) },
     };
 
     authService = {
@@ -97,6 +107,94 @@ describe('InvitesService', () => {
         expect.stringContaining(`/accept-invite/${baseInvite.token}`),
         baseInvite.organization.name,
       );
+    });
+
+    it("n'applique aucune limite quand l'organisation n'a pas d'abonnement (accès libre historique)", async () => {
+      prisma.subscription.findUnique.mockResolvedValue(null);
+      prisma.user.count.mockResolvedValue(999);
+      prisma.pendingInvite.count.mockResolvedValue(999);
+      prisma.pendingInvite.create.mockResolvedValue(baseInvite);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).resolves.toBeDefined();
+    });
+
+    it("n'applique aucune limite pendant l'essai (TRIAL = niveau Pro complet)", async () => {
+      prisma.subscription.findUnique.mockResolvedValue({ status: 'TRIAL', plan: null });
+      prisma.user.count.mockResolvedValue(999);
+      prisma.pendingInvite.create.mockResolvedValue(baseInvite);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).resolves.toBeDefined();
+    });
+
+    it('Standard (maxUsers=5) : autorise une invitation quand 4 utilisateurs + 0 invitation en attente', async () => {
+      prisma.subscription.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        plan: { features: { maxUsers: 5, features: [] } },
+      });
+      prisma.user.count.mockResolvedValue(4);
+      prisma.pendingInvite.count.mockResolvedValue(0);
+      prisma.pendingInvite.create.mockResolvedValue(baseInvite);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).resolves.toBeDefined();
+      expect(prisma.pendingInvite.create).toHaveBeenCalled();
+    });
+
+    it('Standard (maxUsers=5) : refuse (403, SEAT_LIMIT_REACHED) une invitation quand 4 utilisateurs + 1 invitation en attente atteignent déjà 5', async () => {
+      prisma.subscription.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        plan: { features: { maxUsers: 5, features: [] } },
+      });
+      prisma.user.count.mockResolvedValue(4);
+      prisma.pendingInvite.count.mockResolvedValue(1);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).rejects.toMatchObject({
+        constructor: ForbiddenException,
+        response: { code: 'SEAT_LIMIT_REACHED' },
+      });
+      expect(prisma.pendingInvite.create).not.toHaveBeenCalled();
+      expect(mailService.sendInviteEmail).not.toHaveBeenCalled();
+    });
+
+    it('Pro (maxUsers=null) : jamais limité, même avec beaucoup d’utilisateurs existants', async () => {
+      prisma.subscription.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        plan: { features: { maxUsers: null, features: [] } },
+      });
+      prisma.user.count.mockResolvedValue(500);
+      prisma.pendingInvite.count.mockResolvedValue(50);
+      prisma.pendingInvite.create.mockResolvedValue(baseInvite);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).resolves.toBeDefined();
+    });
+
+    it('retente automatiquement une fois en cas de conflit de sérialisation (P2034) puis réussit', async () => {
+      const conflictError = Object.assign(
+        Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+        { code: 'P2034', message: 'conflict' },
+      );
+      let call = 0;
+      prisma.$transaction = jest.fn(async (cb) => {
+        call += 1;
+        if (call === 1) throw conflictError;
+        return cb(buildTx());
+      });
+      prisma.subscription.findUnique.mockResolvedValue(null);
+      prisma.pendingInvite.create.mockResolvedValue(baseInvite);
+
+      await expect(
+        invitesService.create(organizationId, invitedByUserId, { email: 'x@example.com', role: Role.CASHIER }),
+      ).resolves.toBeDefined();
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     });
   });
 

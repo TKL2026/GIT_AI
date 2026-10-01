@@ -1,15 +1,21 @@
 import type { CrossSellPairDto, CustomerInsightDto, ProductToPushDto } from '@copilote/shared';
+import { FEATURES } from '@copilote/shared';
 import { Tabs, Text } from '@mantine/core';
 import { IconArrowsExchange, IconRocket, IconUsers } from '@tabler/icons-react';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
+import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { useCrossSellOpportunities, useCustomerInsights, useProductsToPush } from '../../hooks/useCommercial';
+import { useOrganization } from '../../hooks/useOrganization';
+import { hasFeature } from '../../lib/entitlements';
 import { formatCurrency, formatDate } from '../../lib/format';
 
 export function CommercialPage() {
-  const { data: productsToPush = [], isLoading: isLoadingPush } = useProductsToPush();
-  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomerInsights();
-  const { data: crossSell = [], isLoading: isLoadingCrossSell } = useCrossSellOpportunities();
+  const { data: organization } = useOrganization();
+  const canSeeCommercial = hasFeature(organization, FEATURES.COMMERCIAL);
+  const { data: productsToPush = [], isLoading: isLoadingPush } = useProductsToPush(canSeeCommercial);
+  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomerInsights(canSeeCommercial);
+  const { data: crossSell = [], isLoading: isLoadingCrossSell } = useCrossSellOpportunities(canSeeCommercial);
 
   const pushColumns: DataTableColumn<ProductToPushDto>[] = [
     { key: 'productName', label: 'Produit', render: (p) => p.productName },
@@ -48,6 +54,20 @@ export function CommercialPage() {
     { key: 'productBName', label: 'Produit B', render: (p) => p.productBName },
     { key: 'coOccurrenceCount', label: 'Co-achats', textAlign: 'right', render: (p) => p.coOccurrenceCount },
   ];
+
+  if (!canSeeCommercial) {
+    return (
+      <>
+        <PageHeader title="Commercial" description="Produits à pousser, clients et ventes croisées" />
+        <EmptyState
+          icon={IconRocket}
+          title="Fonctionnalité Pro"
+          description="L'analyse commerciale (produits à pousser, meilleurs clients, ventes croisées) fait partie de l'offre Pro."
+          action={{ label: 'Voir les offres', to: '/billing' }}
+        />
+      </>
+    );
+  }
 
   return (
     <>

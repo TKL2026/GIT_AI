@@ -4,6 +4,7 @@ import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
+import { EntitlementsService } from '../../common/entitlements/entitlements.service';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { OrganizationResponseDto } from './dto/organization-response.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -14,7 +15,10 @@ import { OrganizationsService } from './organizations.service';
 @Controller('organizations')
 @SkipSubscriptionCheck()
 export class OrganizationsController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
+  constructor(
+    private readonly organizationsService: OrganizationsService,
+    private readonly entitlementsService: EntitlementsService,
+  ) {}
 
   @Get('me')
   @ApiOkResponse({ type: OrganizationResponseDto })
@@ -23,7 +27,8 @@ export class OrganizationsController {
     if (!organization) {
       throw new NotFoundException('Organisation introuvable.');
     }
-    return OrganizationResponseDto.fromEntity(organization);
+    const features = await this.entitlementsService.getFeatures(currentUser.organizationId);
+    return OrganizationResponseDto.fromEntity(organization, [...features]);
   }
 
   /**
@@ -39,7 +44,8 @@ export class OrganizationsController {
     @Body() dto: UpdateOrganizationDto,
   ): Promise<OrganizationResponseDto> {
     const organization = await this.organizationsService.update(currentUser.organizationId, dto);
-    return OrganizationResponseDto.fromEntity(organization);
+    const features = await this.entitlementsService.getFeatures(currentUser.organizationId);
+    return OrganizationResponseDto.fromEntity(organization, [...features]);
   }
 
   @Post('me/complete-onboarding')
@@ -47,6 +53,7 @@ export class OrganizationsController {
   @ApiOkResponse({ type: OrganizationResponseDto })
   async completeOnboarding(@CurrentUser() currentUser: AuthenticatedUser): Promise<OrganizationResponseDto> {
     const organization = await this.organizationsService.completeOnboarding(currentUser.organizationId);
-    return OrganizationResponseDto.fromEntity(organization);
+    const features = await this.entitlementsService.getFeatures(currentUser.organizationId);
+    return OrganizationResponseDto.fromEntity(organization, [...features]);
   }
 }

@@ -1,5 +1,6 @@
 import type { ExpenseDto, FraudAnomalyDto, MonthlyFinanceTrendDto, ProductProfitabilityDto } from '@copilote/shared';
-import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Tabs, Title } from '@mantine/core';
+import { FEATURES } from '@copilote/shared';
+import { Badge, Button, Card, Center, Group, SimpleGrid, Stack, Text, Tabs, Title } from '@mantine/core';
 import { BarChart, DonutChart, LineChart } from '@mantine/charts';
 import { DatePickerInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -7,6 +8,7 @@ import {
   IconChartBar,
   IconChartLine,
   IconCash,
+  IconLock,
   IconPlus,
   IconReceipt,
   IconReceipt2,
@@ -25,9 +27,24 @@ import { useCopilotChat } from '../../hooks/useCopilot';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useFinanceSummary, useMonthlyTrend, useProductsProfitability } from '../../hooks/useFinance';
 import { useFraudAnomalies } from '../../hooks/useFraud';
+import { useOrganization } from '../../hooks/useOrganization';
+import { hasFeature } from '../../lib/entitlements';
 import { formatCurrency, formatDate, formatPercent } from '../../lib/format';
 import { EXPENSE_CATEGORY_LABELS } from '../../lib/labels';
 import { ExpenseFormModal } from './ExpenseFormModal';
+
+function ProFeatureNotice({ label }: { label: string }) {
+  return (
+    <Center py="xl">
+      <Stack align="center" gap="xs">
+        <IconLock size={28} color="var(--mantine-color-dimmed)" />
+        <Text c="dimmed" size="sm" ta="center">
+          {label} fait partie de l'offre Pro.
+        </Text>
+      </Stack>
+    </Center>
+  );
+}
 
 const DONUT_COLORS = ['emerald.6', 'amber.6', 'error.6', 'blue.6', 'grape.6', 'gray.6'];
 
@@ -40,12 +57,16 @@ export function FinancePage() {
   const from = fromDate?.toISOString();
   const to = toDate?.toISOString();
 
+  const { data: organization } = useOrganization();
+  const hasFinanceAdvanced = hasFeature(organization, FEATURES.FINANCE_ADVANCED);
+  const hasFraud = hasFeature(organization, FEATURES.FRAUD);
+
   const { data: summary, isLoading: isLoadingSummary } = useFinanceSummary(from, to);
   const { data: profitability = [], isLoading: isLoadingProfitability } =
-    useProductsProfitability(from, to);
+    useProductsProfitability(from, to, hasFinanceAdvanced);
   const { data: expenses = [], isLoading: isLoadingExpenses } = useExpenses(from, to);
-  const { data: trend = [], isLoading: isLoadingTrend } = useMonthlyTrend();
-  const { data: anomalies = [], isLoading: isLoadingAnomalies } = useFraudAnomalies();
+  const { data: trend = [], isLoading: isLoadingTrend } = useMonthlyTrend(undefined, hasFinanceAdvanced);
+  const { data: anomalies = [], isLoading: isLoadingAnomalies } = useFraudAnomalies(hasFraud);
   const chat = useCopilotChat();
 
   const trendData = useMemo(
@@ -291,14 +312,18 @@ export function FinancePage() {
               <Text fw={600} mb="sm">
                 Rentabilité par produit
               </Text>
-              <DataTable
-                columns={profitabilityColumns}
-                rows={profitability}
-                rowKey={(p) => p.productId}
-                isLoading={isLoadingProfitability}
-                emptyMessage="Aucune vente sur la période sélectionnée."
-                pageSize={10}
-              />
+              {hasFinanceAdvanced ? (
+                <DataTable
+                  columns={profitabilityColumns}
+                  rows={profitability}
+                  rowKey={(p) => p.productId}
+                  isLoading={isLoadingProfitability}
+                  emptyMessage="Aucune vente sur la période sélectionnée."
+                  pageSize={10}
+                />
+              ) : (
+                <ProFeatureNotice label="L'analyse de rentabilité par produit" />
+              )}
             </div>
 
             <Card>
@@ -376,6 +401,10 @@ export function FinancePage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="trend" pt="md">
+          {!hasFinanceAdvanced ? (
+            <ProFeatureNotice label="L'analyse des tendances mensuelles" />
+          ) : (
+            <>
           {trendData.length > 0 && (
             <SimpleGrid cols={{ base: 1, lg: 2 }} mb="md">
               <Card>
@@ -414,20 +443,28 @@ export function FinancePage() {
             isLoading={isLoadingTrend}
             emptyMessage="Pas assez de données pour calculer une tendance."
           />
+            </>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="anomalies" pt="md">
-          <Text size="sm" c="dimmed" mb="sm">
-            Ce sont des signaux statistiques à vérifier, pas des preuves de fraude.
-          </Text>
-          <DataTable
-            columns={anomalyColumns}
-            rows={anomalies}
-            rowKey={(a) => `${a.type}-${a.productId}-${a.performedByUserId ?? 'anon'}`}
-            isLoading={isLoadingAnomalies}
-            emptyMessage="Aucune anomalie détectée."
-            pageSize={10}
-          />
+          {!hasFraud ? (
+            <ProFeatureNotice label="La détection d'anomalies" />
+          ) : (
+            <>
+              <Text size="sm" c="dimmed" mb="sm">
+                Ce sont des signaux statistiques à vérifier, pas des preuves de fraude.
+              </Text>
+              <DataTable
+                columns={anomalyColumns}
+                rows={anomalies}
+                rowKey={(a) => `${a.type}-${a.productId}-${a.performedByUserId ?? 'anon'}`}
+                isLoading={isLoadingAnomalies}
+                emptyMessage="Aucune anomalie détectée."
+                pageSize={10}
+              />
+            </>
+          )}
         </Tabs.Panel>
       </Tabs>
 

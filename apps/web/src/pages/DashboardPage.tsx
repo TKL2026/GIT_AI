@@ -1,4 +1,4 @@
-import { PurchaseOrderStatus } from '@copilote/shared';
+import { FEATURES, PurchaseOrderStatus } from '@copilote/shared';
 import {
   ActionIcon,
   Badge,
@@ -71,6 +71,7 @@ import { computeDecliningProducts } from '../lib/dashboard/computeDecliningProdu
 import { computeStockHealth, selectStockAttention, type StockHealthEntry } from '../lib/dashboard/computeStockHealth';
 import { mergeActivity, type ActivityItem, type ActivityType } from '../lib/dashboard/mergeActivity';
 import { changeRatio, getPeriodRange, PERIODS, type PeriodKey } from '../lib/dashboard/period';
+import { hasFeature } from '../lib/entitlements';
 import { ProductFormModal } from './products/ProductFormModal';
 import { PurchaseOrderFormModal } from './purchases/PurchaseOrderFormModal';
 import { SaleFormModal } from './sales/SaleFormModal';
@@ -136,6 +137,8 @@ export function DashboardPage() {
   const canSeeFinance = hasRole(user, FINANCE_ROLES);
   const canManageStock = hasRole(user, STOCK_MUTATION_ROLES);
   const canManageSales = hasRole(user, SALES_MUTATION_ROLES);
+  const { data: organization } = useOrganization();
+  const canSeeFinanceAdvanced = canSeeFinance && hasFeature(organization, FEATURES.FINANCE_ADVANCED);
   const [period, setPeriod] = useState<PeriodKey>('7d');
   const [customRange, setCustomRange] = useState<[Date | null, Date | null]>([null, null]);
   const { from, to, prevFrom, prevTo } = useMemo(
@@ -151,21 +154,24 @@ export function DashboardPage() {
   const { data: topProducts, isLoading: isTopProductsLoading } = useProductsProfitability(
     from,
     to,
-    canSeeFinance,
+    canSeeFinanceAdvanced,
   );
-  const { data: prevTopProducts } = useProductsProfitability(prevFrom, prevTo, canSeeFinance);
+  const { data: prevTopProducts } = useProductsProfitability(prevFrom, prevTo, canSeeFinanceAdvanced);
 
   const { data: products = [], isLoading: isProductsLoading } = useProducts();
   const { data: purchaseOrders = [], isLoading: isPurchaseOrdersLoading } = usePurchaseOrders();
   const { data: sales = [], isLoading: isSalesLoading } = useSales();
-  const { data: forecast = [] } = useReplenishmentForecast();
-  const { data: fraudAnomalies = [] } = useFraudAnomalies(canSeeFinance);
-  const { data: purchaseRecommendations = [] } = usePurchaseRecommendations();
-  const { data: productsToPush = [] } = useProductsToPush();
-  const { data: crossSell = [] } = useCrossSellOpportunities();
+  const canSeeForecast = hasFeature(organization, FEATURES.FORECAST);
+  const canSeeFraud = canSeeFinance && hasFeature(organization, FEATURES.FRAUD);
+  const canSeePurchasingAi = hasFeature(organization, FEATURES.PURCHASING_AI);
+  const canSeeCommercial = hasFeature(organization, FEATURES.COMMERCIAL);
+  const { data: forecast = [] } = useReplenishmentForecast(canSeeForecast);
+  const { data: fraudAnomalies = [] } = useFraudAnomalies(canSeeFraud);
+  const { data: purchaseRecommendations = [] } = usePurchaseRecommendations(canSeePurchasingAi);
+  const { data: productsToPush = [] } = useProductsToPush(canSeeCommercial);
+  const { data: crossSell = [] } = useCrossSellOpportunities(canSeeCommercial);
   const { data: stockMovements = [] } = useStockMovements();
   const { data: usersList = [] } = useUsers();
-  const { data: organization } = useOrganization();
   const { data: suppliers = [] } = useSuppliers();
 
   const dailyReport = useDailyReport();

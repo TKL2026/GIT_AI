@@ -11,3 +11,4 @@ export {
   SubscriptionStatus,
 } from './enums';
 export * from './types';
+export * from './features';
