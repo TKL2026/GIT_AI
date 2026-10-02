@@ -12,3 +12,8 @@ apps/api/generated/
 apps/web/dist/
 *.tsbuildinfo
 backups/
+
+# Outillage local MCP (Playwright) — config/sorties spécifiques à la machine
+.mcp.json
+.playwright-mcp/
+example-iana-test.png

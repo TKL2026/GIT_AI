@@ -49,15 +49,20 @@ enum ExpenseCategory {
 }
 
 enum SubscriptionStatus {
-  /// Essai gratuit de 48h en cours — accès complet.
+  /// Essai gratuit de 7 jours en cours — accès complet.
   TRIAL
   /// Offre payante choisie à l'inscription, paiement jamais confirmé — aucun
-  /// accès, distinct de TRIAL (jamais eu d'essai) et de EXPIRED (essai
+  /// accès, distinct de TRIAL (jamais eu d'essai) et de TRIAL_EXPIRED (essai
   /// consommé) : sémantique métier différente, voir subscription-status.util.ts.
   AWAITING_PAYMENT
   ACTIVE
   PAST_DUE
+  /// Réservé pour un futur abonnement payant expiré (non renouvelé) —
+  /// rien dans le code ne produit ce statut aujourd'hui, voir TRIAL_EXPIRED
+  /// pour le cas "essai gratuit consommé".
   EXPIRED
+  /// Essai gratuit de 7 jours consommé sans paiement — distinct de EXPIRED.
+  TRIAL_EXPIRED
   CANCELLED
 }
 
@@ -117,6 +122,7 @@ model Organization {
   pendingInvites      PendingInvite[]
   subscription        Subscription?
   paymentTransactions PaymentTransaction[]
+  copilotUsageLogs    CopilotUsageLog[]
 
   @@map("organizations")
 }
@@ -390,6 +396,11 @@ model Subscription {
   startedAt        DateTime?
   currentPeriodEnd DateTime?
   cancelledAt      DateTime?
+  /// Nombre de requêtes Copilot consommées sur la période en cours — remis à
+  /// zéro à chaque activation/renouvellement (voir billing.service.ts
+  /// #activateSubscription). Jamais remis à zéro pendant un essai (une seule
+  /// période de 7 jours, pas de renouvellement).
+  copilotRequestsUsed Int              @default(0)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -431,4 +442,26 @@ model PaymentTransaction {
   @@index([organizationId])
   @@index([status])
   @@map("payment_transactions")
+}
+
+/// Métadonnées d'usage Copilot à des fins d'observabilité interne
+/// (coût moyen par client/plan, répartition Haiku/Sonnet...) — jamais
+/// exposé aux utilisateurs. Ne stocke volontairement aucun contenu de
+/// conversation, uniquement des métriques.
+model CopilotUsageLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  model          String
+  inputTokens    Int?
+  outputTokens   Int?
+  durationMs     Int
+  toolsUsed      String[] @default([])
+  planCode       String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("copilot_usage_logs")
 }

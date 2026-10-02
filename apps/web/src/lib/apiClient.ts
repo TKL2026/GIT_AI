@@ -103,7 +103,7 @@ export const apiClient = {
     lastName: string;
     /** Code de l'offre payante choisie avant l'inscription (voir
      * pendingPlan.ts) — jamais un prix, le backend revérifie toujours le
-     * plan réel. Absent = essai gratuit de 48h. */
+     * plan réel. Absent = essai gratuit de 7 jours. */
     planCode?: string;
   }) =>
     request<AuthResponseDto>('/auth/register', {

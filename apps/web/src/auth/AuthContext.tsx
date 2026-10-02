@@ -16,7 +16,7 @@ interface RegisterInput {
   firstName: string;
   lastName: string;
   /** Code de l'offre payante choisie avant l'inscription — voir
-   * pendingPlan.ts. Absent = essai gratuit de 48h. */
+   * pendingPlan.ts. Absent = essai gratuit de 7 jours. */
   planCode?: string;
 }
 

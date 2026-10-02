@@ -155,7 +155,7 @@ describe('Entitlements Standard/Pro (e2e)', () => {
           status: 'SUCCESSFUL',
           reference: 'campay-ref-standard',
           external_reference: checkoutResponse.body.data.externalReference,
-          amount: '5000',
+          amount: '10000',
           currency: 'XAF',
           signature: 'signature-simulee-valide',
         })
@@ -297,7 +297,7 @@ describe('Entitlements Standard/Pro (e2e)', () => {
           status: 'SUCCESSFUL',
           reference: 'campay-ref-pro',
           external_reference: checkoutResponse.body.data.externalReference,
-          amount: '10000',
+          amount: '20000',
           currency: 'XAF',
           signature: 'signature-simulee-valide',
         })
@@ -365,7 +365,7 @@ describe('Entitlements Standard/Pro (e2e)', () => {
       expect(response.body.data.status).toBe('TRIAL');
     });
 
-    it('accède aux fonctionnalités Pro pendant les 48h, sans jamais avoir payé (mêmes fonctionnalités que Pro pendant l’essai)', async () => {
+    it('accède aux fonctionnalités Pro pendant les 7 jours, sans jamais avoir payé (mêmes fonctionnalités que Pro pendant l’essai)', async () => {
       await request(app.getHttpServer())
         .get('/api/forecast/replenishment')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -421,7 +421,7 @@ describe('Entitlements Standard/Pro (e2e)', () => {
         .expect(201);
 
       expect(camPayService.collect).toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 10000, currency: 'XAF' }),
+        expect.objectContaining({ amount: 20000, currency: 'XAF' }),
       );
       expect(checkoutResponse.body.data).not.toHaveProperty('amount');
     });

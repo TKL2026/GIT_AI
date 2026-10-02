@@ -6,9 +6,21 @@ const prisma = new PrismaClient();
 
 // "Sur mesure" n'est volontairement pas un Plan ici : prix négocié au cas
 // par cas, contact commercial uniquement, pas de checkout self-service.
+// Son quota/ses fonctionnalités seront personnalisables sans migration le
+// jour venu, puisque PlanFeaturesJson est un JSON libre par ligne de Plan.
 const PLANS: { code: string; name: string; price: number; features: PlanFeaturesJson }[] = [
-  { code: 'standard', name: 'Standard', price: 5000, features: { maxUsers: 5, features: STANDARD_FEATURES } },
-  { code: 'pro', name: 'Pro', price: 10000, features: { maxUsers: null, features: PRO_FEATURES } },
+  {
+    code: 'standard',
+    name: 'Standard',
+    price: 10000,
+    features: { maxUsers: 5, features: STANDARD_FEATURES, copilotQuota: 500 },
+  },
+  {
+    code: 'pro',
+    name: 'Pro',
+    price: 20000,
+    features: { maxUsers: null, features: PRO_FEATURES, copilotQuota: 1500 },
+  },
 ];
 
 async function seedPlans() {

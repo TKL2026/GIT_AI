@@ -139,7 +139,7 @@ describe('AuthService', () => {
       );
     });
 
-    it("sans planCode : crée une Subscription TRIAL avec 48h d'essai (comportement par défaut inchangé)", async () => {
+    it("sans planCode : crée une Subscription TRIAL avec 7 jours d'essai (comportement par défaut)", async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
       await authService.register({
@@ -160,10 +160,10 @@ describe('AuthService', () => {
         }),
       });
       const call = subscriptionCreate.mock.calls[0][0].data;
-      expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(48 * 60 * 60 * 1000);
+      expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
     });
 
-    it('avec planCode=standard : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période de 48h', async () => {
+    it('avec planCode=standard : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période d\'essai', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       prisma.plan.findUnique.mockResolvedValue({ id: 'plan-standard', code: 'standard', isActive: true, price: 5000 });
 
@@ -185,7 +185,7 @@ describe('AuthService', () => {
       });
     });
 
-    it('avec planCode=pro : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période de 48h', async () => {
+    it('avec planCode=pro : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période d\'essai', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       prisma.plan.findUnique.mockResolvedValue({ id: 'plan-pro', code: 'pro', isActive: true, price: 10000 });
 

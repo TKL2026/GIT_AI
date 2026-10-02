@@ -49,7 +49,7 @@ const FAQS = [
   {
     question: "Comment fonctionne l'abonnement ?",
     answer:
-      "Chaque compte commence par un essai gratuit de 48 heures. Ensuite, choisissez l'offre adaptée à votre entreprise — retrouvez le détail complet sur notre page Tarifs.",
+      "Chaque compte commence par un essai gratuit de 7 jours. Ensuite, choisissez l'offre adaptée à votre entreprise — retrouvez le détail complet sur notre page Tarifs.",
   },
 ];
 

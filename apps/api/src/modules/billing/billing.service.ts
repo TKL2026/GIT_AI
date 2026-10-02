@@ -1,16 +1,16 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import {
   Plan,
   Prisma,
   PaymentTransaction,
   Subscription,
   SubscriptionPeriod,
-} from '@prisma/client';
-import { randomUUID } from 'crypto';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CamPayService } from '../campay/campay.service';
-import { CheckoutDto } from './dto/checkout.dto';
-import { normalizeCameroonPhone } from './phone.util';
+} from "@prisma/client";
+import { randomUUID } from "crypto";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CamPayService } from "../campay/campay.service";
+import { CheckoutDto } from "./dto/checkout.dto";
+import { normalizeCameroonPhone } from "./phone.util";
 
 const PERIOD_DURATIONS_MS: Record<SubscriptionPeriod, number> = {
   MONTHLY: 30 * 24 * 60 * 60 * 1000,
@@ -45,10 +45,15 @@ export class BillingService {
   ) {}
 
   listPlans(): Promise<Plan[]> {
-    return this.prisma.plan.findMany({ where: { isActive: true }, orderBy: { price: 'asc' } });
+    return this.prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { price: "asc" },
+    });
   }
 
-  async getSubscription(organizationId: string): Promise<(Subscription & { plan: Plan | null }) | null> {
+  async getSubscription(
+    organizationId: string,
+  ): Promise<(Subscription & { plan: Plan | null }) | null> {
     return this.prisma.subscription.findUnique({
       where: { organizationId },
       include: { plan: true },
@@ -58,7 +63,7 @@ export class BillingService {
   listTransactions(organizationId: string): Promise<PaymentTransaction[]> {
     return this.prisma.paymentTransaction.findMany({
       where: { organizationId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -66,10 +71,15 @@ export class BillingService {
    * Crée une tentative de paiement et appelle CamPay. Le prix et la devise
    * viennent exclusivement du Plan en base — jamais du corps de la requête.
    */
-  async checkout(organizationId: string, dto: CheckoutDto): Promise<CheckoutResult> {
-    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+  async checkout(
+    organizationId: string,
+    dto: CheckoutDto,
+  ): Promise<CheckoutResult> {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+    });
     if (!plan || !plan.isActive) {
-      throw new NotFoundException('Plan introuvable ou inactif.');
+      throw new NotFoundException("Plan introuvable ou inactif.");
     }
 
     const phoneNumber = normalizeCameroonPhone(dto.phoneNumber);
@@ -81,10 +91,10 @@ export class BillingService {
         planId: plan.id,
         amount: plan.price,
         currency: plan.currency,
-        provider: 'CAMPAY',
+        provider: "CAMPAY",
         operator: dto.operator,
         phoneNumber,
-        status: 'PENDING',
+        status: "PENDING",
         externalReference,
       },
     });
@@ -107,12 +117,12 @@ export class BillingService {
         transactionId: transaction.id,
         externalReference,
         ussdCode: result.ussdCode,
-        status: 'PENDING',
+        status: "PENDING",
       };
     } catch (error) {
       await this.prisma.paymentTransaction.update({
         where: { id: transaction.id },
-        data: { status: 'FAILED', providerStatusRaw: 'collect_call_failed' },
+        data: { status: "FAILED", providerStatusRaw: "collect_call_failed" },
       });
       throw error;
     }
@@ -131,15 +141,17 @@ export class BillingService {
       where: { externalReference, organizationId },
     });
     if (!transaction) {
-      throw new NotFoundException('Transaction introuvable.');
+      throw new NotFoundException("Transaction introuvable.");
     }
 
-    if (transaction.status !== 'PENDING' || !transaction.providerReference) {
+    if (transaction.status !== "PENDING" || !transaction.providerReference) {
       return transaction;
     }
 
     try {
-      const remote = await this.camPayService.getTransactionStatus(transaction.providerReference);
+      const remote = await this.camPayService.getTransactionStatus(
+        transaction.providerReference,
+      );
       await this.applyPaymentResult({
         reference: remote.reference,
         externalReference: transaction.externalReference,
@@ -153,7 +165,11 @@ export class BillingService {
       );
     }
 
-    return (await this.prisma.paymentTransaction.findUnique({ where: { id: transaction.id } })) ?? transaction;
+    return (
+      (await this.prisma.paymentTransaction.findUnique({
+        where: { id: transaction.id },
+      })) ?? transaction
+    );
   }
 
   /**
@@ -176,7 +192,7 @@ export class BillingService {
         return;
       }
 
-      if (transaction.status !== 'PENDING') {
+      if (transaction.status !== "PENDING") {
         this.logger.log(
           `Événement CamPay ignoré : transaction ${transaction.id} déjà traitée (statut=${transaction.status}).`,
         );
@@ -189,13 +205,15 @@ export class BillingService {
       // active (getTransactionForOrganization) peut recevoir ce statut avant
       // que le webhook final n'arrive : ne rien modifier, un appel ultérieur
       // (webhook ou nouvelle revérification) tranchera avec un statut final.
-      if (event.status === 'PENDING') {
+      if (event.status === "PENDING") {
         return;
       }
 
       const amountMatches = Number(event.amount) === transaction.amount;
       const currencyMatches = event.currency === transaction.currency;
-      const referenceMatches = !transaction.providerReference || transaction.providerReference === event.reference;
+      const referenceMatches =
+        !transaction.providerReference ||
+        transaction.providerReference === event.reference;
 
       if (!amountMatches || !currencyMatches || !referenceMatches) {
         this.logger.error(
@@ -203,22 +221,26 @@ export class BillingService {
             `montant OK=${amountMatches}, devise OK=${currencyMatches}, référence OK=${referenceMatches}`,
         );
         await tx.paymentTransaction.updateMany({
-          where: { id: transaction.id, status: 'PENDING' },
-          data: { status: 'FAILED', providerStatusRaw: 'mismatch', providerReference: event.reference },
+          where: { id: transaction.id, status: "PENDING" },
+          data: {
+            status: "FAILED",
+            providerStatusRaw: "mismatch",
+            providerReference: event.reference,
+          },
         });
         return;
       }
 
-      const isSuccess = event.status === 'SUCCESSFUL';
+      const isSuccess = event.status === "SUCCESSFUL";
 
       // Verrou d'idempotence sous concurrence : n'agit que si encore PENDING
       // au moment précis de l'écriture (et pas seulement au moment de la
       // lecture ci-dessus) — deux webhooks simultanés pour la même
       // transaction ne peuvent aboutir qu'à une seule activation.
       const updated = await tx.paymentTransaction.updateMany({
-        where: { id: transaction.id, status: 'PENDING' },
+        where: { id: transaction.id, status: "PENDING" },
         data: {
-          status: isSuccess ? 'SUCCESS' : 'FAILED',
+          status: isSuccess ? "SUCCESS" : "FAILED",
           providerReference: event.reference,
           providerStatusRaw: event.status,
           paidAt: isSuccess ? new Date() : null,
@@ -238,7 +260,9 @@ export class BillingService {
     transaction: PaymentTransaction,
     plan: Plan,
   ): Promise<void> {
-    const existing = await tx.subscription.findUnique({ where: { organizationId: transaction.organizationId } });
+    const existing = await tx.subscription.findUnique({
+      where: { organizationId: transaction.organizationId },
+    });
 
     const now = new Date();
     const periodMs = PERIOD_DURATIONS_MS[plan.period];
@@ -247,25 +271,36 @@ export class BillingService {
     // encore actif et pas encore expiré — ne jamais écraser une période déjà
     // payée. Sinon (premier abonnement, ou renouvellement tardif après
     // expiration), la nouvelle période repart de maintenant.
-    const stillActive = existing?.status === 'ACTIVE' && existing.currentPeriodEnd && existing.currentPeriodEnd > now;
+    const stillActive =
+      existing?.status === "ACTIVE" &&
+      existing.currentPeriodEnd &&
+      existing.currentPeriodEnd > now;
     const baseDate = stillActive ? existing!.currentPeriodEnd! : now;
     const newPeriodEnd = new Date(baseDate.getTime() + periodMs);
 
+    // Chaque paiement réussi (premier abonnement, renouvellement, ou
+    // changement de plan) remet le compteur de requêtes Copilot à zéro —
+    // c'est le même événement qui fait à la fois foi pour la période de
+    // facturation (currentPeriodEnd) et pour le quota, pas de champ de
+    // période séparé nécessaire. Pendant un essai (jamais renouvelé via ce
+    // chemin), le compteur n'est donc jamais remis à zéro ici.
     const subscription = await tx.subscription.upsert({
       where: { organizationId: transaction.organizationId },
       create: {
         organizationId: transaction.organizationId,
         planId: plan.id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         startedAt: now,
         currentPeriodEnd: newPeriodEnd,
+        copilotRequestsUsed: 0,
       },
       update: {
         planId: plan.id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         startedAt: existing?.startedAt ?? now,
         currentPeriodEnd: newPeriodEnd,
         cancelledAt: null,
+        copilotRequestsUsed: 0,
       },
     });
 

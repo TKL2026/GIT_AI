@@ -104,11 +104,11 @@ describe('Billing (e2e)', () => {
     const { externalReference } = checkoutResponse.body.data;
     expect(checkoutResponse.body.data.status).toBe('PENDING');
 
-    // Le montant/devise envoyés au webhook correspondent au VRAI prix du plan (5000 XAF, seedé).
+    // Le montant/devise envoyés au webhook correspondent au VRAI prix du plan (10000 XAF, seedé).
     const webhookPayload = {
       status: 'SUCCESSFUL',
       reference: 'campay-ref-e2e',
-      amount: '5000',
+      amount: '10000',
       currency: 'XAF',
       external_reference: externalReference,
       signature: 'signature-simulee-valide',
@@ -154,7 +154,7 @@ describe('Billing (e2e)', () => {
       .send({
         status: 'SUCCESSFUL',
         reference: 'r',
-        amount: '5000',
+        amount: '10000',
         currency: 'XAF',
         external_reference: 'ref-inexistant',
         signature: 'invalide',
@@ -177,7 +177,7 @@ describe('Billing (e2e)', () => {
       .query({
         status: 'SUCCESSFUL',
         reference: 'campay-ref-get-e2e',
-        amount: '5000',
+        amount: '10000',
         currency: 'XAF',
         external_reference: externalReference,
         signature: 'signature-simulee-valide',
@@ -199,7 +199,7 @@ describe('Billing (e2e)', () => {
       .query({
         status: 'SUCCESSFUL',
         reference: 'r',
-        amount: '5000',
+        amount: '10000',
         currency: 'XAF',
         external_reference: 'ref-inexistant',
         signature: 'invalide',
@@ -325,7 +325,7 @@ describe('Billing (e2e)', () => {
         .send({
           status: 'SUCCESSFUL',
           reference: 'campay-ref-awaiting',
-          amount: '10000',
+          amount: '20000',
           currency: 'XAF',
           external_reference: pending.externalReference,
           signature: 'signature-simulee-valide',

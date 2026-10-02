@@ -69,4 +69,7 @@ export const PRO_FEATURES: Feature[] = [...STANDARD_FEATURES, ...PRO_ONLY_FEATUR
 export interface PlanFeaturesJson {
   maxUsers: number | null;
   features: Feature[];
+  /** Quota de requêtes Copilot sur la période de facturation. `null` =
+   * illimité (réservé à une future offre Sur Mesure sans limite). */
+  copilotQuota: number | null;
 }

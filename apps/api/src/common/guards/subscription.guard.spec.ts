@@ -81,7 +81,7 @@ describe('SubscriptionGuard', () => {
     });
   });
 
-  it('auto-guérit TRIAL -> EXPIRED en base (compare-and-swap) quand l’essai est expiré', async () => {
+  it('auto-guérit TRIAL -> TRIAL_EXPIRED en base (compare-and-swap) quand l’essai est expiré', async () => {
     prisma.subscription.findUnique.mockResolvedValue({
       id: 'sub-1',
       status: 'TRIAL',
@@ -92,11 +92,25 @@ describe('SubscriptionGuard', () => {
 
     expect(prisma.subscription.updateMany).toHaveBeenCalledWith({
       where: { id: 'sub-1', status: 'TRIAL' },
-      data: { status: 'EXPIRED' },
+      data: { status: 'TRIAL_EXPIRED' },
     });
   });
 
-  it('bloque un abonnement déjà EXPIRED sans retenter d’auto-guérison (déjà dans cet état)', async () => {
+  it('bloque (403, code SUBSCRIPTION_EXPIRED) un abonnement déjà TRIAL_EXPIRED sans retenter d’auto-guérison (déjà dans cet état)', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      id: 'sub-1',
+      status: 'TRIAL_EXPIRED',
+      currentPeriodEnd: new Date(Date.now() - 1000),
+    });
+
+    await expect(guard.canActivate(buildContext(fakeUser))).rejects.toMatchObject({
+      constructor: ForbiddenException,
+      response: { code: 'SUBSCRIPTION_EXPIRED' },
+    });
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('bloque un abonnement déjà EXPIRED sans retenter d’auto-guérison (statut réservé, déjà dans cet état)', async () => {
     prisma.subscription.findUnique.mockResolvedValue({
       id: 'sub-1',
       status: 'EXPIRED',

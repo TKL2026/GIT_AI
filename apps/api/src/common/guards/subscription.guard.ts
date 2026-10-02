@@ -1,9 +1,14 @@
-import { ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../prisma/prisma.service';
-import { SKIP_SUBSCRIPTION_KEY } from '../decorators/skip-subscription-check.decorator';
-import { isSubscriptionLocked } from '../subscription/subscription-status.util';
-import { AuthenticatedUser } from '../types/authenticated-user.interface';
+import {
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PrismaService } from "../../prisma/prisma.service";
+import { SKIP_SUBSCRIPTION_KEY } from "../decorators/skip-subscription-check.decorator";
+import { isSubscriptionLocked } from "../subscription/subscription-status.util";
+import { AuthenticatedUser } from "../types/authenticated-user.interface";
 
 @Injectable()
 export class SubscriptionGuard {
@@ -15,10 +20,10 @@ export class SubscriptionGuard {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const skip = this.reflector.getAllAndOverride<boolean>(SKIP_SUBSCRIPTION_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const skip = this.reflector.getAllAndOverride<boolean>(
+      SKIP_SUBSCRIPTION_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     if (skip) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -33,28 +38,30 @@ export class SubscriptionGuard {
 
     if (!isSubscriptionLocked(subscription)) return true;
 
-    // Auto-guérison : bascule TRIAL -> EXPIRED en base au premier passage
-    // après expiration. Compare-and-swap sur le statut (même pattern que
-    // billing.service.ts#applyPaymentResult) : si un paiement concurrent a
-    // déjà activé l'abonnement, cette écriture ne touche aucune ligne et ne
-    // peut pas écraser un statut ACTIVE fraîchement posé.
-    if (subscription?.status === 'TRIAL') {
+    // Auto-guérison : bascule TRIAL -> TRIAL_EXPIRED en base au premier
+    // passage après expiration. Compare-and-swap sur le statut (même pattern
+    // que billing.service.ts#applyPaymentResult) : si un paiement concurrent
+    // a déjà activé l'abonnement, cette écriture ne touche aucune ligne et
+    // ne peut pas écraser un statut ACTIVE fraîchement posé.
+    if (subscription?.status === "TRIAL") {
       void this.prisma.subscription
         .updateMany({
-          where: { id: subscription.id, status: 'TRIAL' },
-          data: { status: 'EXPIRED' },
+          where: { id: subscription.id, status: "TRIAL" },
+          data: { status: "TRIAL_EXPIRED" },
         })
-        .catch((error) => this.logger.warn(`Échec auto-expiration essai : ${error}`));
+        .catch((error) =>
+          this.logger.warn(`Échec auto-expiration essai : ${error}`),
+        );
     }
 
     const message =
-      subscription?.status === 'AWAITING_PAYMENT'
-        ? 'Votre inscription est presque terminée. Finalisez le paiement de votre offre pour activer votre accès.'
+      subscription?.status === "AWAITING_PAYMENT"
+        ? "Votre inscription est presque terminée. Finalisez le paiement de votre offre pour activer votre accès."
         : "Votre période d'essai est terminée. Votre espace et vos données sont conservés. Choisissez une offre pour réactiver votre accès.";
 
     // Même code pour les deux cas : le frontend ne distingue pas la raison
     // pour déclencher la redirection (voir main.tsx), seule la page de
     // suspension affine le message affiché via GET /billing/subscription.
-    throw new ForbiddenException({ message, code: 'SUBSCRIPTION_EXPIRED' });
+    throw new ForbiddenException({ message, code: "SUBSCRIPTION_EXPIRED" });
   }
 }

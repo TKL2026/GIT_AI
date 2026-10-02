@@ -57,12 +57,15 @@ describe('CopilotEngine', () => {
     const engine = new CopilotEngine({ client, dataProvider });
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Comment ça va ?' }]);
 
-    expect(reply).toBe('Bonjour, tout va bien.');
+    expect(reply.message).toBe('Bonjour, tout va bien.');
     expect(create).toHaveBeenCalledTimes(1);
   });
 
   it('route un tool_use vers la méthode du data provider correspondante avec le tenantId du contexte', async () => {
-    const stockAlerts = [{ id: 'p1', name: 'Riz', sku: 'RIZ', purchasePrice: 1, salePrice: 2, stockQuantity: 1, minStock: 5, maxStock: null }];
+    const stockAlerts = {
+      totalCount: 1,
+      items: [{ id: 'p1', name: 'Riz', sku: 'RIZ', purchasePrice: 1, salePrice: 2, stockQuantity: 1, minStock: 5, maxStock: null }],
+    };
     const create = jest
       .fn()
       .mockResolvedValueOnce(toolUseMessage('get_stock_alerts', {}))
@@ -73,8 +76,9 @@ describe('CopilotEngine', () => {
     const engine = new CopilotEngine({ client, dataProvider });
     const reply = await engine.chat('org-real-tenant', [{ role: 'user', content: 'Y a-t-il des ruptures ?' }]);
 
-    expect(dataProvider.getStockAlerts).toHaveBeenCalledWith('org-real-tenant');
-    expect(reply).toBe('Un produit est en rupture : Riz.');
+    expect(dataProvider.getStockAlerts).toHaveBeenCalledWith('org-real-tenant', undefined);
+    expect(reply.message).toBe('Un produit est en rupture : Riz.');
+    expect(reply.toolsUsed).toEqual(['get_stock_alerts']);
   });
 
   it("ignore un organizationId injecté dans l'input du tool_use et utilise toujours le tenantId authentifié", async () => {
@@ -101,16 +105,19 @@ describe('CopilotEngine', () => {
   });
 
   it('route get_replenishment_forecast vers dataProvider.getReplenishmentForecast', async () => {
-    const forecast = [
-      {
-        productId: 'p1',
-        productName: 'Riz 25kg',
-        currentStock: 4,
-        averageDailySales: 2,
-        daysUntilStockout: 2,
-        recommendedReorderQuantity: 56,
-      },
-    ];
+    const forecast = {
+      totalCount: 1,
+      items: [
+        {
+          productId: 'p1',
+          productName: 'Riz 25kg',
+          currentStock: 4,
+          averageDailySales: 2,
+          daysUntilStockout: 2,
+          recommendedReorderQuantity: 56,
+        },
+      ],
+    };
     const create = jest
       .fn()
       .mockResolvedValueOnce(toolUseMessage('get_replenishment_forecast', {}))
@@ -123,8 +130,8 @@ describe('CopilotEngine', () => {
     const engine = new CopilotEngine({ client, dataProvider });
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je recommander bientôt ?' }]);
 
-    expect(dataProvider.getReplenishmentForecast).toHaveBeenCalledWith('org-1');
-    expect(reply).toBe('Réapprovisionnez le riz sous 2 jours.');
+    expect(dataProvider.getReplenishmentForecast).toHaveBeenCalledWith('org-1', undefined);
+    expect(reply.message).toBe('Réapprovisionnez le riz sous 2 jours.');
   });
 
   it('route get_fraud_anomalies vers dataProvider.getFraudAnomalies', async () => {
@@ -153,7 +160,7 @@ describe('CopilotEngine', () => {
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Y a-t-il des anomalies suspectes ?' }]);
 
     expect(dataProvider.getFraudAnomalies).toHaveBeenCalledWith('org-1');
-    expect(reply).toBe('Un signal à vérifier sur le riz.');
+    expect(reply.message).toBe('Un signal à vérifier sur le riz.');
   });
 
   it('route get_monthly_finance_trend vers dataProvider.getMonthlyFinanceTrend avec le paramètre months', async () => {
@@ -184,7 +191,7 @@ describe('CopilotEngine', () => {
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Comment évolue mon CA ?' }]);
 
     expect(dataProvider.getMonthlyFinanceTrend).toHaveBeenCalledWith('org-1', 3);
-    expect(reply).toBe('Le CA progresse sur la période.');
+    expect(reply.message).toBe('Le CA progresse sur la période.');
   });
 
   it('route get_products_to_push vers dataProvider.getProductsToPush', async () => {
@@ -199,7 +206,7 @@ describe('CopilotEngine', () => {
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je pousser ?' }]);
 
     expect(dataProvider.getProductsToPush).toHaveBeenCalledWith('org-1');
-    expect(reply).toBe('Pousse le riz, il a une bonne marge.');
+    expect(reply.message).toBe('Pousse le riz, il a une bonne marge.');
   });
 
   it('route get_customer_insights vers dataProvider.getCustomerInsights avec le paramètre limit', async () => {
@@ -237,14 +244,14 @@ describe('CopilotEngine', () => {
       .mockResolvedValueOnce(textMessage('Commande du riz chez le fournisseur A.'));
     const client: AnthropicMessagesClient = { messages: { create } };
     const dataProvider = buildDataProvider({
-      getPurchaseRecommendations: jest.fn().mockResolvedValue([]),
+      getPurchaseRecommendations: jest.fn().mockResolvedValue({ totalCount: 0, items: [] }),
     });
 
     const engine = new CopilotEngine({ client, dataProvider });
     const reply = await engine.chat('org-1', [{ role: 'user', content: 'Que dois-je commander ?' }]);
 
-    expect(dataProvider.getPurchaseRecommendations).toHaveBeenCalledWith('org-1');
-    expect(reply).toBe('Commande du riz chez le fournisseur A.');
+    expect(dataProvider.getPurchaseRecommendations).toHaveBeenCalledWith('org-1', undefined);
+    expect(reply.message).toBe('Commande du riz chez le fournisseur A.');
   });
 
   it("s'arrête avec une erreur explicite si le nombre d'itérations d'outils dépasse la limite", async () => {
@@ -263,5 +270,77 @@ describe('CopilotEngine', () => {
   it('lève une erreur si ni client ni apiKey ne sont fournis', () => {
     const dataProvider = buildDataProvider();
     expect(() => new CopilotEngine({ dataProvider } as never)).toThrow(/client.*apiKey/);
+  });
+
+  describe('routage Haiku/Sonnet', () => {
+    it('utilise le modèle Haiku et omet output_config pour un message classé simple', async () => {
+      const create = jest.fn().mockResolvedValue(textMessage('Vous avez 12 produits.'));
+      const client: AnthropicMessagesClient = { messages: { create } };
+      const dataProvider = buildDataProvider();
+
+      const engine = new CopilotEngine({ client, dataProvider, haikuModel: 'test-haiku', sonnetModel: 'test-sonnet' });
+      await engine.chat('org-1', [{ role: 'user', content: 'Combien ai-je de produits ?' }]);
+
+      const params = create.mock.calls[0][0];
+      expect(params.model).toBe('test-haiku');
+      expect(params.output_config).toBeUndefined();
+    });
+
+    it('utilise le modèle Sonnet et conserve output_config pour un message classé complexe', async () => {
+      const create = jest.fn().mockResolvedValue(textMessage('Voici votre analyse.'));
+      const client: AnthropicMessagesClient = { messages: { create } };
+      const dataProvider = buildDataProvider();
+
+      const engine = new CopilotEngine({ client, dataProvider, haikuModel: 'test-haiku', sonnetModel: 'test-sonnet' });
+      await engine.chat('org-1', [
+        { role: 'user', content: 'Analyse mes ventes, ma marge, mes stocks et mes achats et donne-moi les actions prioritaires.' },
+      ]);
+
+      const params = create.mock.calls[0][0];
+      expect(params.model).toBe('test-sonnet');
+      expect(params.output_config).toEqual({ effort: 'medium' });
+    });
+
+    it('ne change jamais de modèle en cours de boucle d\'outils (décidé une seule fois sur le dernier message utilisateur)', async () => {
+      const create = jest
+        .fn()
+        .mockResolvedValueOnce(toolUseMessage('get_stock_alerts', {}))
+        .mockResolvedValueOnce(textMessage('Un produit est en rupture.'));
+      const client: AnthropicMessagesClient = { messages: { create } };
+      const dataProvider = buildDataProvider({
+        getStockAlerts: jest.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      });
+
+      const engine = new CopilotEngine({ client, dataProvider, haikuModel: 'test-haiku', sonnetModel: 'test-sonnet' });
+      await engine.chat('org-1', [{ role: 'user', content: 'Quels produits sont en rupture ?' }]);
+
+      expect(create.mock.calls[0][0].model).toBe('test-haiku');
+      expect(create.mock.calls[1][0].model).toBe('test-haiku');
+    });
+
+    it('cumule inputTokens/outputTokens et toolsUsed sur toutes les itérations d\'outils', async () => {
+      const create = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ...toolUseMessage('get_stock_alerts', {}),
+          usage: { input_tokens: 100, output_tokens: 20 } as Anthropic.Usage,
+        })
+        .mockResolvedValueOnce({
+          ...textMessage('Un produit est en rupture.'),
+          usage: { input_tokens: 150, output_tokens: 40 } as Anthropic.Usage,
+        });
+      const client: AnthropicMessagesClient = { messages: { create } };
+      const dataProvider = buildDataProvider({
+        getStockAlerts: jest.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      });
+
+      const engine = new CopilotEngine({ client, dataProvider });
+      const reply = await engine.chat('org-1', [{ role: 'user', content: 'Quels produits sont en rupture ?' }]);
+
+      expect(reply.inputTokens).toBe(250);
+      expect(reply.outputTokens).toBe(60);
+      expect(reply.toolsUsed).toEqual(['get_stock_alerts']);
+      expect(reply.model).toBe('claude-haiku-4-5-20251001');
+    });
   });
 });

@@ -4,20 +4,20 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { Plan, Role, User } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { createHash, randomUUID } from 'crypto';
-import { PrismaService } from '../../prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
-import { UsersService } from '../users/users.service';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import { Plan, Role, User } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import { createHash, randomUUID } from "crypto";
+import { PrismaService } from "../../prisma/prisma.service";
+import { MailService } from "../mail/mail.service";
+import { UsersService } from "../users/users.service";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { VerifyEmailDto } from "./dto/verify-email.dto";
 
 export interface AuthTokens {
   accessToken: string;
@@ -47,10 +47,12 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<{ user: User; tokens: AuthTokens }> {
+  async register(
+    dto: RegisterDto,
+  ): Promise<{ user: User; tokens: AuthTokens }> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
-      throw new ConflictException('Un compte existe déjà avec cet email.');
+      throw new ConflictException("Un compte existe déjà avec cet email.");
     }
 
     // Offre payante choisie avant l'inscription : le frontend ne transmet
@@ -58,9 +60,11 @@ export class AuthService {
     // Plan actif réel avant de faire quoi que ce soit (source de vérité).
     let chosenPlan: Plan | null = null;
     if (dto.planCode) {
-      chosenPlan = await this.prisma.plan.findUnique({ where: { code: dto.planCode } });
+      chosenPlan = await this.prisma.plan.findUnique({
+        where: { code: dto.planCode },
+      });
       if (!chosenPlan || !chosenPlan.isActive) {
-        throw new NotFoundException('Offre introuvable ou inactive.');
+        throw new NotFoundException("Offre introuvable ou inactive.");
       }
     }
 
@@ -69,8 +73,8 @@ export class AuthService {
     const user = await this.prisma.$transaction(async (tx) => {
       const organization = await tx.organization.create({
         data: {
-          name: dto.organizationName?.trim() || 'Mon entreprise',
-          onboardingStep: 'company',
+          name: dto.organizationName?.trim() || "Mon entreprise",
+          onboardingStep: "company",
         },
       });
 
@@ -86,24 +90,24 @@ export class AuthService {
       });
 
       if (chosenPlan) {
-        // Offre payante : aucun essai de 48h accordé — bloqué jusqu'à
+        // Offre payante : aucun essai de 7 jours accordé — bloqué jusqu'à
         // confirmation d'un paiement réel (voir isSubscriptionLocked).
         await tx.subscription.create({
           data: {
             organizationId: organization.id,
             planId: chosenPlan.id,
-            status: 'AWAITING_PAYMENT',
+            status: "AWAITING_PAYMENT",
           },
         });
       } else {
-        // Essai gratuit de 48h, démarré automatiquement à l'inscription.
+        // Essai gratuit de 7 jours, démarré automatiquement à l'inscription.
         const now = new Date();
         await tx.subscription.create({
           data: {
             organizationId: organization.id,
-            status: 'TRIAL',
+            status: "TRIAL",
             startedAt: now,
-            currentPeriodEnd: new Date(now.getTime() + 48 * 60 * 60 * 1000),
+            currentPeriodEnd: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           },
         });
       }
@@ -122,12 +126,15 @@ export class AuthService {
   async login(dto: LoginDto): Promise<{ user: User; tokens: AuthTokens }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
-      throw new UnauthorizedException('Identifiants invalides.');
+      throw new UnauthorizedException("Identifiants invalides.");
     }
 
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
-      throw new UnauthorizedException('Identifiants invalides.');
+      throw new UnauthorizedException("Identifiants invalides.");
     }
 
     const tokens = await this.issueTokens(user);
@@ -144,12 +151,14 @@ export class AuthService {
    * existe.
    */
   async demoLogin(): Promise<{ user: User; tokens: AuthTokens }> {
-    const isEnabled = this.configService.get<string>('DEMO_MODE_ENABLED') === 'true';
+    const isEnabled =
+      this.configService.get<string>("DEMO_MODE_ENABLED") === "true";
     if (!isEnabled) {
       throw new NotFoundException();
     }
 
-    const demoEmail = this.configService.get<string>('DEMO_USER_EMAIL') || 'owner@demo.com';
+    const demoEmail =
+      this.configService.get<string>("DEMO_USER_EMAIL") || "owner@demo.com";
     const user = await this.usersService.findByEmail(demoEmail);
     if (!user) {
       throw new NotFoundException();
@@ -162,11 +171,14 @@ export class AuthService {
   async refresh(refreshToken: string): Promise<AuthTokens> {
     let payload: AccessTokenPayload;
     try {
-      payload = await this.jwtService.verifyAsync<AccessTokenPayload>(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      });
+      payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
+        refreshToken,
+        {
+          secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
+        },
+      );
     } catch {
-      throw new UnauthorizedException('Refresh token invalide ou expiré.');
+      throw new UnauthorizedException("Refresh token invalide ou expiré.");
     }
 
     const tokenHash = this.hashToken(refreshToken);
@@ -175,12 +187,12 @@ export class AuthService {
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token invalide ou expiré.');
+      throw new UnauthorizedException("Refresh token invalide ou expiré.");
     }
 
     const user = await this.usersService.findById(payload.sub);
     if (!user) {
-      throw new UnauthorizedException('Utilisateur introuvable.');
+      throw new UnauthorizedException("Utilisateur introuvable.");
     }
 
     await this.prisma.refreshToken.update({
@@ -218,12 +230,16 @@ export class AuthService {
       data: {
         userId: user.id,
         token,
-        expiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000),
+        expiresAt: new Date(
+          Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000,
+        ),
       },
     });
 
-    const resetUrl = `${this.configService.get<string>('CORS_ORIGIN')}/reset-password?token=${token}`;
-    this.logger.log(`Lien de réinitialisation pour ${user.email} : ${resetUrl}`);
+    const resetUrl = `${this.configService.get<string>("CORS_ORIGIN")}/reset-password?token=${token}`;
+    this.logger.log(
+      `Lien de réinitialisation pour ${user.email} : ${resetUrl}`,
+    );
     await this.mailService.sendPasswordResetEmail(user.email, resetUrl);
   }
 
@@ -233,7 +249,9 @@ export class AuthService {
     });
 
     if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
-      throw new NotFoundException('Lien de réinitialisation invalide ou expiré.');
+      throw new NotFoundException(
+        "Lien de réinitialisation invalide ou expiré.",
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -257,12 +275,17 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<void> {
-    const verificationToken = await this.prisma.emailVerificationToken.findUnique({
-      where: { token: dto.token },
-    });
+    const verificationToken =
+      await this.prisma.emailVerificationToken.findUnique({
+        where: { token: dto.token },
+      });
 
-    if (!verificationToken || verificationToken.usedAt || verificationToken.expiresAt < new Date()) {
-      throw new NotFoundException('Lien de confirmation invalide ou expiré.');
+    if (
+      !verificationToken ||
+      verificationToken.usedAt ||
+      verificationToken.expiresAt < new Date()
+    ) {
+      throw new NotFoundException("Lien de confirmation invalide ou expiré.");
     }
 
     await this.prisma.$transaction([
@@ -297,15 +320,22 @@ export class AuthService {
         data: {
           userId: user.id,
           token,
-          expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000),
+          expiresAt: new Date(
+            Date.now() + VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000,
+          ),
         },
       });
 
-      const verifyUrl = `${this.configService.get<string>('CORS_ORIGIN')}/verify-email?token=${token}`;
-      this.logger.log(`Lien de confirmation d'email pour ${user.email} : ${verifyUrl}`);
+      const verifyUrl = `${this.configService.get<string>("CORS_ORIGIN")}/verify-email?token=${token}`;
+      this.logger.log(
+        `Lien de confirmation d'email pour ${user.email} : ${verifyUrl}`,
+      );
       await this.mailService.sendVerificationEmail(user.email, verifyUrl);
     } catch (error) {
-      this.logger.error(`Échec de préparation de l'email de confirmation pour ${user.email}`, error);
+      this.logger.error(
+        `Échec de préparation de l'email de confirmation pour ${user.email}`,
+        error,
+      );
     }
   }
 
@@ -322,13 +352,15 @@ export class AuthService {
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN'),
+      secret: this.configService.get<string>("JWT_ACCESS_SECRET"),
+      expiresIn: this.configService.get<string>("JWT_ACCESS_EXPIRES_IN"),
     });
 
-    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN')!;
+    const refreshExpiresIn = this.configService.get<string>(
+      "JWT_REFRESH_EXPIRES_IN",
+    )!;
     const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
       expiresIn: refreshExpiresIn,
     });
 
@@ -344,7 +376,7 @@ export class AuthService {
   }
 
   private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+    return createHash("sha256").update(token).digest("hex");
   }
 
   private computeExpiryDate(expiresIn: string): Date {
@@ -353,7 +385,9 @@ export class AuthService {
       return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     }
     const value = Number(match[1]);
-    const unitMs = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2]]!;
+    const unitMs = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[
+      match[2]
+    ]!;
     return new Date(Date.now() + value * unitMs);
   }
 }

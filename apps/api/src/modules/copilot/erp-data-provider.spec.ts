@@ -101,7 +101,27 @@ describe('ErpDataProvider', () => {
     const result = await provider.getPurchaseRecommendations(organizationId);
 
     expect(purchasingService.getPurchaseRecommendations).toHaveBeenCalledWith(organizationId);
-    expect(result).toEqual(recommendations);
+    expect(result).toEqual({ totalCount: 1, items: recommendations });
+  });
+
+  it('limite get_purchase_recommendations à 50 par défaut tout en renvoyant un totalCount exact', async () => {
+    const recommendations = Array.from({ length: 3 }, (_, i) => ({
+      productId: `p${i}`,
+      productName: `Produit ${i}`,
+      recommendedQuantity: 10,
+      daysUntilStockout: 2,
+      recommendedSupplierId: null,
+      recommendedSupplierName: null,
+      lastUnitCost: null,
+      alternativeSupplierCount: 0,
+      hasSupplierHistory: false,
+    }));
+    purchasingService.getPurchaseRecommendations.mockResolvedValue(recommendations);
+
+    const result = await provider.getPurchaseRecommendations(organizationId, 1);
+
+    expect(result.totalCount).toBe(3);
+    expect(result.items).toHaveLength(1);
   });
 
   it('transmet tenantId à CommercialService.getProductsToPush', async () => {
@@ -196,10 +216,10 @@ describe('ErpDataProvider', () => {
     const result = await provider.getReplenishmentForecast(organizationId);
 
     expect(forecastService.getReplenishmentForecast).toHaveBeenCalledWith(organizationId);
-    expect(result).toEqual(forecast);
+    expect(result).toEqual({ totalCount: 1, items: forecast });
   });
 
-  it('transmet tenantId à FraudService.getAnomalies', async () => {
+  it('transmet tenantId à FraudService.getAnomalies et retire performedByUserId avant envoi au modèle', async () => {
     const anomalies = [
       {
         type: 'unexplained_stock_adjustment',
@@ -217,7 +237,7 @@ describe('ErpDataProvider', () => {
     const result = await provider.getFraudAnomalies(organizationId);
 
     expect(fraudService.getAnomalies).toHaveBeenCalledWith(organizationId);
-    expect(result).toEqual(anomalies);
+    expect(result).toEqual([{ ...anomalies[0], performedByUserId: null }]);
   });
 
   it('normalise les produits en alerte de stock', async () => {
@@ -226,18 +246,35 @@ describe('ErpDataProvider', () => {
     const result = await provider.getStockAlerts(organizationId);
 
     expect(stockService.findAlerts).toHaveBeenCalledWith(organizationId);
-    expect(result).toEqual([
-      {
-        id: 'prod-1',
-        name: 'Riz 25kg',
-        sku: 'RIZ-25KG',
-        purchasePrice: 12000,
-        salePrice: 15000,
-        stockQuantity: 3,
-        minStock: 5,
-        maxStock: null,
-      },
-    ]);
+    expect(result).toEqual({
+      totalCount: 1,
+      items: [
+        {
+          id: 'prod-1',
+          name: 'Riz 25kg',
+          sku: 'RIZ-25KG',
+          purchasePrice: 12000,
+          salePrice: 15000,
+          stockQuantity: 3,
+          minStock: 5,
+          maxStock: null,
+        },
+      ],
+    });
+  });
+
+  it('limite get_products à 50 par défaut et jamais plus de 200, avec un totalCount toujours exact', async () => {
+    productsService.findAll.mockResolvedValue(
+      Array.from({ length: 300 }, (_, i) => buildProduct({ id: `prod-${i}`, sku: `SKU-${i}` })),
+    );
+
+    const withDefault = await provider.getProducts(organizationId);
+    expect(withDefault.totalCount).toBe(300);
+    expect(withDefault.items).toHaveLength(50);
+
+    const withOversizedLimit = await provider.getProducts(organizationId, 1000);
+    expect(withOversizedLimit.totalCount).toBe(300);
+    expect(withOversizedLimit.items).toHaveLength(200);
   });
 
   it('limite get_recent_sales à 20 par défaut et jamais plus de 50', async () => {
@@ -292,9 +329,10 @@ describe('ErpDataProvider', () => {
 
     const result = await provider.getPendingPurchaseOrders(organizationId);
 
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('po-1');
-    expect(result[0].status).toBe(PurchaseOrderStatus.PENDING);
+    expect(result.totalCount).toBe(1);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe('po-1');
+    expect(result.items[0].status).toBe(PurchaseOrderStatus.PENDING);
   });
 
   it('normalise les fournisseurs', async () => {
@@ -313,8 +351,9 @@ describe('ErpDataProvider', () => {
 
     const result = await provider.getSuppliers(organizationId);
 
-    expect(result).toEqual([
-      { id: 'sup-1', name: 'Fournisseur A', contactName: 'Jean', phone: '+225000000', email: null },
-    ]);
+    expect(result).toEqual({
+      totalCount: 1,
+      items: [{ id: 'sup-1', name: 'Fournisseur A', contactName: 'Jean', phone: '+225000000', email: null }],
+    });
   });
 });

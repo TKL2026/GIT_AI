@@ -33,13 +33,30 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_stock_alerts',
     description:
-      'Renvoie les produits dont la quantité en stock est en dessous (ou égale) de leur seuil minimum — risques de rupture.',
-    input_schema: { type: 'object', properties: {} },
+      "Renvoie les produits dont la quantité en stock est en dessous (ou égale) de leur seuil minimum — risques de rupture. Renvoie aussi `totalCount`, le nombre total d'alertes (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage sans avoir besoin de la liste complète.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de produits à renvoyer (défaut 50, maximum 200).',
+        },
+      },
+    },
   },
   {
     name: 'get_products',
-    description: "Renvoie le catalogue complet des produits avec prix d'achat, prix de vente et quantité en stock.",
-    input_schema: { type: 'object', properties: {} },
+    description:
+      "Renvoie le catalogue des produits avec prix d'achat, prix de vente et quantité en stock, ainsi que `totalCount`, le nombre total de produits (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage ('combien de produits ?') sans avoir besoin du catalogue complet. Augmente `limit` si une analyse porte réellement sur le détail de nombreux produits.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de produits à renvoyer (défaut 50, maximum 200).',
+        },
+      },
+    },
   },
   {
     name: 'get_recent_sales',
@@ -56,19 +73,45 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'get_pending_purchase_orders',
-    description: "Renvoie les commandes fournisseurs actuellement en attente de réception.",
-    input_schema: { type: 'object', properties: {} },
+    description:
+      "Renvoie les commandes fournisseurs actuellement en attente de réception, ainsi que `totalCount`, le nombre total de commandes en attente (toujours exact même si la liste `items` est limitée).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de commandes à renvoyer (défaut 30, maximum 100).',
+        },
+      },
+    },
   },
   {
     name: 'get_suppliers',
-    description: "Renvoie la liste des fournisseurs de l'entreprise.",
-    input_schema: { type: 'object', properties: {} },
+    description:
+      "Renvoie la liste des fournisseurs de l'entreprise, ainsi que `totalCount`, le nombre total de fournisseurs (toujours exact même si la liste `items` est limitée).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de fournisseurs à renvoyer (défaut 50, maximum 200).',
+        },
+      },
+    },
   },
   {
     name: 'get_replenishment_forecast',
     description:
-      "Renvoie, pour chaque produit, une prévision de réapprovisionnement calculée à partir de la vélocité de vente des 30 derniers jours : ventes moyennes par jour, nombre de jours estimé avant rupture de stock, et quantité recommandée à commander. Trié du plus urgent au moins urgent ; les produits sans vente récente n'ont pas de prévision (valeurs nulles).",
-    input_schema: { type: 'object', properties: {} },
+      "Renvoie, pour chaque produit, une prévision de réapprovisionnement calculée à partir de la vélocité de vente des 30 derniers jours : ventes moyennes par jour, nombre de jours estimé avant rupture de stock, et quantité recommandée à commander. Trié du plus urgent au moins urgent ; les produits sans vente récente n'ont pas de prévision (valeurs nulles). Renvoie aussi `totalCount`, le nombre total de produits couverts par la prévision.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de lignes à renvoyer (défaut 50, maximum 200).',
+        },
+      },
+    },
   },
   {
     name: 'get_fraud_anomalies',
@@ -127,7 +170,15 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_purchase_recommendations',
     description:
-      "Renvoie, pour chaque produit à réapprovisionner (d'après la prévision), la quantité recommandée et le fournisseur suggéré (le moins cher parmi ceux ayant déjà fourni ce produit, d'après l'historique des commandes). Si aucun historique n'existe pour un produit, le signale explicitement (pas de fournisseur à deviner). Trié du plus urgent au moins urgent.",
-    input_schema: { type: 'object', properties: {} },
+      "Renvoie, pour chaque produit à réapprovisionner (d'après la prévision), la quantité recommandée et le fournisseur suggéré (le moins cher parmi ceux ayant déjà fourni ce produit, d'après l'historique des commandes). Si aucun historique n'existe pour un produit, le signale explicitement (pas de fournisseur à deviner). Trié du plus urgent au moins urgent. Renvoie aussi `totalCount`, le nombre total de produits à réapprovisionner.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Nombre maximum de recommandations à renvoyer (défaut 50, maximum 200).',
+        },
+      },
+    },
   },
 ];

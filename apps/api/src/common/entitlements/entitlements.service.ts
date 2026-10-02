@@ -17,11 +17,12 @@ import { PrismaService } from "../../prisma/prisma.service";
  * - Pas de ligne Subscription (compte démo, organisations pré-abonnement)
  *   -> accès libre historique, donc niveau Pro complet.
  * - TRIAL (jamais verrouillé à ce stade puisque SubscriptionGuard a laissé
- *   passer) -> niveau Pro complet pendant les 48h, comme demandé.
+ *   passer) -> niveau Pro complet pendant les 7 jours, comme demandé.
  * - ACTIVE -> exactement les features du Plan payé, ni plus ni moins.
- * - Tout le reste (AWAITING_PAYMENT, EXPIRED, PAST_DUE, CANCELLED) -> aucune
- *   fonctionnalité. Ne devrait jamais être atteint en pratique (déjà
- *   bloqué plus tôt), mais reste sûr par défaut si jamais appelé ailleurs.
+ * - Tout le reste (AWAITING_PAYMENT, TRIAL_EXPIRED, EXPIRED, PAST_DUE,
+ *   CANCELLED) -> aucune fonctionnalité. Ne devrait jamais être atteint en
+ *   pratique (déjà bloqué plus tôt), mais reste sûr par défaut si jamais
+ *   appelé ailleurs.
  */
 @Injectable()
 export class EntitlementsService {

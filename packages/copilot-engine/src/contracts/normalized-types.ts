@@ -1,3 +1,12 @@
+/** Enveloppe paginée pour les outils potentiellement volumineux (catalogue,
+ * fournisseurs, commandes...) — `totalCount` permet de répondre exactement
+ * à des questions de comptage ("combien ai-je de produits ?") sans avoir à
+ * envoyer la totalité des lignes au modèle. */
+export interface PaginatedResult<T> {
+  totalCount: number;
+  items: T[];
+}
+
 export interface NormalizedProduct {
   id: string;
   name: string;
