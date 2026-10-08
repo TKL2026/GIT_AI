@@ -16,7 +16,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "admin:create": "ts-node prisma/manage-platform-admin.ts create",
+    "admin:list": "ts-node prisma/manage-platform-admin.ts list",
+    "admin:deactivate": "ts-node prisma/manage-platform-admin.ts deactivate",
+    "admin:reactivate": "ts-node prisma/manage-platform-admin.ts reactivate"
   },
   "dependencies": {
     "@copilote/copilot-engine": "*",

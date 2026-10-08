@@ -112,6 +112,12 @@ model Organization {
   onboardingStep        String?
   onboardingCompletedAt DateTime?
 
+  /// Suspension décidée par un administrateur plateforme (support/abus) —
+  /// distincte du cycle de facturation (SubscriptionStatus) : un admin peut
+  /// suspendre même un abonnement payant ACTIVE. Vérifiée par SubscriptionGuard
+  /// en plus (jamais à la place) de isSubscriptionLocked().
+  suspendedAt DateTime?
+
   users               User[]
   products            Product[]
   stockMovements      StockMovement[]
@@ -223,6 +229,11 @@ model Product {
   stockQuantity  Int      @default(0)
   minStock       Int?
   maxStock       Int?
+  /// Archivage (BUG-004) : un produit déjà vendu ne peut pas être supprimé
+  /// physiquement (SaleItem.product est onDelete: Restrict). isActive=false
+  /// le masque des listes/sélecteurs de vente et d'achat sans perdre son
+  /// historique.
+  isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
 
   organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -281,6 +292,11 @@ model SaleItem {
   productName String
   quantity    Int
   unitPrice   Decimal @db.Decimal(12, 2)
+  /// Coût d'achat figé au moment de la vente (BUG-006) : ne doit jamais
+  /// être relu/recalculé après coup, pour que le COGS d'une vente déjà
+  /// conclue reste stable même si une réception ultérieure change
+  /// Product.purchasePrice.
+  unitCost    Decimal @db.Decimal(12, 2)
   lineTotal   Decimal @db.Decimal(12, 2)
 
   sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -442,6 +458,46 @@ model PaymentTransaction {
   @@index([organizationId])
   @@index([status])
   @@map("payment_transactions")
+}
+
+/// Administrateur de la PLATEFORME UGE — distinct des utilisateurs/rôles
+/// organisationnels (User/Role). Volontairement une table séparée (pas un
+/// Role de plus sur User) : un PLATFORM_ADMIN ne dépend d'aucune
+/// organisation cliente et ne peut structurellement jamais être confondu
+/// avec un OWNER (deux entités différentes, deux secrets JWT différents).
+model PlatformAdmin {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  auditLogs AdminAuditLog[]
+
+  @@map("platform_admins")
+}
+
+/// Trace append-only des actions administratives (connexion, suspension...).
+/// Jamais de secrets/mots de passe/tokens dans `metadata`. `onDelete:
+/// Restrict` sur l'admin : on ne supprime jamais un compte admin qui a déjà
+/// produit de l'historique, pour ne jamais perdre la traçabilité.
+model AdminAuditLog {
+  id              String   @id @default(uuid())
+  platformAdminId String
+  action          String
+  targetType      String?
+  targetId        String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  platformAdmin PlatformAdmin @relation(fields: [platformAdminId], references: [id], onDelete: Restrict)
+
+  @@index([platformAdminId])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }
 
 /// Métadonnées d'usage Copilot à des fins d'observabilité interne

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Logo } from '../components/Logo';
 import { invalidateBillingAfterPayment, usePlans, useSubscription } from '../hooks/useBilling';
+import { useOrganization } from '../hooks/useOrganization';
 import { formatCurrency } from '../lib/format';
 import { consumePendingPlan } from '../lib/pendingPlan';
 import { PaymentModal } from './billing/PaymentModal';
@@ -20,7 +21,9 @@ export function SubscriptionExpiredPage() {
   const queryClient = useQueryClient();
   const { data: plans = [], isLoading } = usePlans();
   const { data: subscription } = useSubscription();
+  const { data: organization } = useOrganization();
   const [selectedPlan, setSelectedPlan] = useState<PlanDto | null>(null);
+  const isSuspended = organization?.suspended ?? false;
   const isAwaitingPayment = subscription?.status === 'AWAITING_PAYMENT';
 
   // Si l'utilisateur avait choisi une offre payante avant que son essai
@@ -61,41 +64,51 @@ export function SubscriptionExpiredPage() {
 
         <Stack gap="xs" align="center">
           <Title order={2} fz={{ base: 24, sm: 28 }}>
-            {isAwaitingPayment ? 'Finalisez votre inscription' : "Votre période d'essai est terminée"}
+            {isSuspended
+              ? 'Accès suspendu'
+              : isAwaitingPayment
+                ? 'Finalisez votre inscription'
+                : "Votre période d'essai est terminée"}
           </Title>
           <Text c="dimmed" size="lg" maw={480}>
-            {isAwaitingPayment
-              ? "Votre compte est créé mais aucun paiement n'a encore été confirmé. Choisissez votre offre et payez pour activer votre accès."
-              : 'Votre espace et vos données sont conservés. Choisissez une offre pour réactiver votre accès.'}
+            {isSuspended
+              ? 'Votre accès à UGE a été suspendu par un administrateur de la plateforme. Contactez le support pour plus d’informations.'
+              : isAwaitingPayment
+                ? "Votre compte est créé mais aucun paiement n'a encore été confirmé. Choisissez votre offre et payez pour activer votre accès."
+                : 'Votre espace et vos données sont conservés. Choisissez une offre pour réactiver votre accès.'}
           </Text>
         </Stack>
 
-        <Stack gap="sm" w="100%">
-          <Title order={4}>Voir les offres</Title>
-          {isLoading ? (
-            <Skeleton height={160} />
-          ) : (
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-              {plans.map((plan) => (
-                <Card key={plan.id} padding="lg">
-                  <Stack gap="xs">
-                    <Text fw={700}>{plan.name}</Text>
-                    <Text fw={700} size="xl">
-                      {formatCurrency(plan.price)}
-                      <Text component="span" size="sm" c="dimmed">
-                        {' '}
-                        / {PERIOD_LABEL[plan.period] ?? plan.period.toLowerCase()}
+        {/* Une suspension est une décision plateforme, pas un problème de
+            facturation — proposer de payer n'aurait aucun effet. */}
+        {!isSuspended && (
+          <Stack gap="sm" w="100%">
+            <Title order={4}>Voir les offres</Title>
+            {isLoading ? (
+              <Skeleton height={160} />
+            ) : (
+              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                {plans.map((plan) => (
+                  <Card key={plan.id} padding="lg">
+                    <Stack gap="xs">
+                      <Text fw={700}>{plan.name}</Text>
+                      <Text fw={700} size="xl">
+                        {formatCurrency(plan.price)}
+                        <Text component="span" size="sm" c="dimmed">
+                          {' '}
+                          / {PERIOD_LABEL[plan.period] ?? plan.period.toLowerCase()}
+                        </Text>
                       </Text>
-                    </Text>
-                    <Button mt="sm" onClick={() => setSelectedPlan(plan)}>
-                      Choisir {plan.name}
-                    </Button>
-                  </Stack>
-                </Card>
-              ))}
-            </SimpleGrid>
-          )}
-        </Stack>
+                      <Button mt="sm" onClick={() => setSelectedPlan(plan)}>
+                        Choisir {plan.name}
+                      </Button>
+                    </Stack>
+                  </Card>
+                ))}
+              </SimpleGrid>
+            )}
+          </Stack>
+        )}
 
         <Center>
           <Group gap="xs">

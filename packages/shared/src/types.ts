@@ -35,6 +35,10 @@ export interface OrganizationDto {
   onboardingStep: string | null;
   onboardingCompletedAt: string | null;
   accessLocked: boolean;
+  /** Suspension décidée par un administrateur plateforme — distincte du
+   * cycle de facturation. Permet au frontend d'afficher un message précis
+   * (plutôt que de supposer "essai terminé") sur /subscription-expired. */
+  suspended: boolean;
   /** Représentation UX uniquement — chaque fonctionnalité reste protégée
    * indépendamment côté backend (FeatureGuard), source d'autorité réelle. */
   features: Feature[];
@@ -56,6 +60,8 @@ export interface InvitePreviewDto {
   role: Role;
 }
 
+export type StockStatus = 'out' | 'low' | 'ok';
+
 export interface ProductDto {
   id: string;
   organizationId: string;
@@ -66,6 +72,8 @@ export interface ProductDto {
   stockQuantity: number;
   minStock: number | null;
   maxStock: number | null;
+  stockStatus: StockStatus;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -293,4 +301,140 @@ export interface CheckoutResultDto {
   externalReference: string;
   ussdCode: string | null;
   status: string;
+}
+
+// ---------------------------------------------------------------------------
+// Back-office plateforme (/admin) — PlatformAdmin est une identité distincte
+// de UserDto (jamais liée à une organisation cliente).
+// ---------------------------------------------------------------------------
+
+export interface PlatformAdminDto {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AdminAuthResponseDto {
+  accessToken: string;
+  admin: PlatformAdminDto;
+}
+
+export interface PaginatedResultDto<T> {
+  data: T[];
+  total: number;
+}
+
+export interface AdminDashboardStatsDto {
+  totalOrganizations: number;
+  totalUsers: number;
+  subscriptionStatusCounts: Record<string, number>;
+  organizationsWithoutSubscription: number;
+  totalRevenueCollected: number;
+  planDistribution: { planCode: string; planName: string; count: number }[];
+  recentOrganizations: {
+    id: string;
+    name: string;
+    createdAt: string;
+    planCode: string | null;
+    subscriptionStatus: string | null;
+  }[];
+  signupsLast30Days: { date: string; count: number }[];
+}
+
+export interface AdminOrganizationListItemDto {
+  id: string;
+  name: string;
+  country: string | null;
+  industry: string | null;
+  userCount: number;
+  planCode: string | null;
+  planName: string | null;
+  subscriptionStatus: SubscriptionStatus | null;
+  suspended: boolean;
+  createdAt: string;
+}
+
+export interface AdminOrganizationDetailDto {
+  id: string;
+  name: string;
+  country: string | null;
+  industry: string | null;
+  teamSize: string | null;
+  createdAt: string;
+  onboardingStep: string | null;
+  onboardingCompletedAt: string | null;
+  suspended: boolean;
+  suspendedAt: string | null;
+  planCode: string | null;
+  planName: string | null;
+  subscriptionStatus: SubscriptionStatus | null;
+  currentPeriodEnd: string | null;
+  userCount: number;
+  productCount: number;
+  salesCount: number;
+  lastSaleAt: string | null;
+}
+
+export interface AdminUserListItemDto {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  organizationId: string;
+  organizationName: string;
+  emailVerifiedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminSubscriptionListItemDto {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  planCode: string | null;
+  planName: string | null;
+  status: SubscriptionStatus;
+  startedAt: string | null;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+}
+
+export interface AdminPaymentListItemDto {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  planCode: string;
+  planName: string;
+  amount: number;
+  currency: string;
+  operator: MobileMoneyOperator;
+  status: PaymentTransactionStatus;
+  externalReference: string;
+  providerReference: string | null;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface AdminSystemStatusDto {
+  api: 'ok';
+  database: 'ok' | 'error';
+  environment: string;
+  integrations: {
+    campay: boolean;
+    anthropic: boolean;
+    whatsapp: boolean;
+    resend: boolean;
+  };
+}
+
+export interface AdminAuditLogItemDto {
+  id: string;
+  platformAdminId: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: unknown;
+  createdAt: string;
+  platformAdmin: { email: string; firstName: string; lastName: string };
 }

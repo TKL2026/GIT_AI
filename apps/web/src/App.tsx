@@ -1,4 +1,16 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { AdminAuthProvider } from './admin/AdminAuthContext';
+import { AdminLayout } from './admin/AdminLayout';
+import { AdminProtectedRoute } from './admin/AdminProtectedRoute';
+import { AdminAuditLogsPage } from './admin/pages/AdminAuditLogsPage';
+import { AdminDashboardPage } from './admin/pages/AdminDashboardPage';
+import { AdminLoginPage } from './admin/pages/AdminLoginPage';
+import { AdminOrganizationDetailPage } from './admin/pages/AdminOrganizationDetailPage';
+import { AdminOrganizationsPage } from './admin/pages/AdminOrganizationsPage';
+import { AdminPaymentsPage } from './admin/pages/AdminPaymentsPage';
+import { AdminSubscriptionsPage } from './admin/pages/AdminSubscriptionsPage';
+import { AdminSystemPage } from './admin/pages/AdminSystemPage';
+import { AdminUsersPage } from './admin/pages/AdminUsersPage';
 import { AuthProvider } from './auth/AuthContext';
 import { BILLING_ROLES, FINANCE_ROLES } from './auth/roles';
 import { AppLayout } from './layout/AppLayout';
@@ -23,6 +35,12 @@ import { ContactPage } from './pages/legal/ContactPage';
 import { LegalNoticePage } from './pages/legal/LegalNoticePage';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
 import { TermsPage } from './pages/legal/TermsPage';
+import { ActualitesPage } from './marketing/pages/ActualitesPage';
+import { CopiloteIaPage } from './marketing/pages/CopiloteIaPage';
+import { FonctionnalitesPage } from './marketing/pages/FonctionnalitesPage';
+import { GestionEntreprisePage } from './marketing/pages/GestionEntreprisePage';
+import { GestionStockPage } from './marketing/pages/GestionStockPage';
+import { WhatsAppPage } from './marketing/pages/WhatsAppPage';
 import { ProductDetailPage } from './pages/products/ProductDetailPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
@@ -37,6 +55,7 @@ import { SubscriptionExpiredPage } from './pages/SubscriptionExpiredPage';
 import { UsersPage } from './pages/UsersPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { HomeRoute } from './routes/HomeRoute';
+import { NotFoundRoute } from './routes/NotFoundRoute';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { RoleGuard } from './routes/RoleGuard';
 
@@ -56,7 +75,17 @@ export function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/legal" element={<LegalNoticePage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/about" element={<AboutPage />} />
+        {/* /a-propos est l'URL SEO canonique (cohérente avec les autres routes
+            publiques en français) ; /about reste fonctionnelle mais redirige
+            pour éviter un doublon de contenu indexable. */}
+        <Route path="/a-propos" element={<AboutPage />} />
+        <Route path="/about" element={<Navigate to="/a-propos" replace />} />
+        <Route path="/fonctionnalites" element={<FonctionnalitesPage />} />
+        <Route path="/gestion-stock" element={<GestionStockPage />} />
+        <Route path="/gestion-entreprise" element={<GestionEntreprisePage />} />
+        <Route path="/copilote-ia" element={<CopiloteIaPage />} />
+        <Route path="/whatsapp" element={<WhatsAppPage />} />
+        <Route path="/actualites" element={<ActualitesPage />} />
         <Route path="/tarifs" element={<PricingPage />} />
         <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
@@ -115,7 +144,31 @@ export function App() {
             }
           />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* Back-office plateforme — identité PLATFORM_ADMIN entièrement
+            distincte des comptes d'organisation (AdminAuthProvider séparé,
+            jamais AuthProvider/ProtectedRoute ci-dessus). */}
+        <Route element={<AdminAuthProvider>{<Outlet />}</AdminAuthProvider>}>
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route
+            element={
+              <AdminProtectedRoute>
+                <AdminLayout />
+              </AdminProtectedRoute>
+            }
+          >
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/organizations" element={<AdminOrganizationsPage />} />
+            <Route path="/admin/organizations/:id" element={<AdminOrganizationDetailPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
+            <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+            <Route path="/admin/system" element={<AdminSystemPage />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFoundRoute />} />
       </Routes>
     </AuthProvider>
   );

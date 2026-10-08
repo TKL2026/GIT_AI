@@ -32,9 +32,25 @@ export class SubscriptionGuard {
     // request.user) — rien à vérifier ici, un autre garde gère déjà l'accès.
     if (!user) return true;
 
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { organizationId: user.organizationId },
-    });
+    const [subscription, organization] = await Promise.all([
+      this.prisma.subscription.findUnique({
+        where: { organizationId: user.organizationId },
+      }),
+      this.prisma.organization.findUnique({
+        where: { id: user.organizationId },
+        select: { suspendedAt: true },
+      }),
+    ]);
+
+    // Suspension décidée par un administrateur plateforme (support/abus) —
+    // prioritaire sur tout statut d'abonnement : bloque même une
+    // organisation avec un abonnement payant ACTIVE.
+    if (organization?.suspendedAt) {
+      throw new ForbiddenException({
+        message: "Votre accès a été suspendu. Contactez le support.",
+        code: "ORGANIZATION_SUSPENDED",
+      });
+    }
 
     if (!isSubscriptionLocked(subscription)) return true;
 

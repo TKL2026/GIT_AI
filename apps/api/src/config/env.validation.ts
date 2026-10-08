@@ -33,6 +33,16 @@ class EnvironmentVariables {
   @IsString()
   JWT_REFRESH_EXPIRES_IN: string = "7d";
 
+  /** Secret dédié aux tokens PLATFORM_ADMIN (/admin/*) — distinct de
+   * JWT_ACCESS_SECRET pour qu'un token tenant ne puisse structurellement
+   * jamais être valide côté admin, et réciproquement. */
+  @IsString()
+  @MinLength(16)
+  JWT_PLATFORM_ADMIN_SECRET!: string;
+
+  @IsString()
+  JWT_PLATFORM_ADMIN_EXPIRES_IN: string = "8h";
+
   @IsString()
   CORS_ORIGIN: string = "http://localhost:5173";
 

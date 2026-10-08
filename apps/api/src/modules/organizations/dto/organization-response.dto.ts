@@ -1,7 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { Feature } from '@copilote/shared';
-import { isSubscriptionLocked } from '../../../common/subscription/subscription-status.util';
-import { OrganizationWithSubscription } from '../organizations.service';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import type { Feature } from "@copilote/shared";
+import { isSubscriptionLocked } from "../../../common/subscription/subscription-status.util";
+import { OrganizationWithSubscription } from "../organizations.service";
 
 export class OrganizationResponseDto {
   @ApiProperty()
@@ -39,13 +39,22 @@ export class OrganizationResponseDto {
   @ApiProperty()
   accessLocked!: boolean;
 
+  /** Suspension décidée par un administrateur plateforme (distincte du
+   * cycle de facturation) — permet au frontend d'afficher un message précis
+   * sur /subscription-expired plutôt que de supposer "essai terminé". */
+  @ApiProperty()
+  suspended!: boolean;
+
   /** Représentation UX uniquement — le frontend peut s'en servir pour
    * afficher/masquer des fonctionnalités, mais chaque endpoint réel reste
    * protégé indépendamment par FeatureGuard côté backend (source d'autorité). */
   @ApiProperty({ type: [String] })
   features!: Feature[];
 
-  static fromEntity(organization: OrganizationWithSubscription, features: Feature[]): OrganizationResponseDto {
+  static fromEntity(
+    organization: OrganizationWithSubscription,
+    features: Feature[],
+  ): OrganizationResponseDto {
     const dto = new OrganizationResponseDto();
     dto.id = organization.id;
     dto.name = organization.name;
@@ -57,7 +66,9 @@ export class OrganizationResponseDto {
     dto.modules = organization.modules;
     dto.onboardingStep = organization.onboardingStep;
     dto.onboardingCompletedAt = organization.onboardingCompletedAt;
-    dto.accessLocked = isSubscriptionLocked(organization.subscription);
+    dto.suspended = Boolean(organization.suspendedAt);
+    dto.accessLocked =
+      isSubscriptionLocked(organization.subscription) || dto.suspended;
     dto.features = features;
     return dto;
   }

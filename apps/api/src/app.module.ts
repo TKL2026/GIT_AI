@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionGuard } from './common/guards/subscription.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { validateEnv } from './config/env.validation';
+import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { CommercialModule } from './modules/commercial/commercial.module';
@@ -59,6 +60,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CopilotModule,
     WhatsAppModule,
     BillingModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

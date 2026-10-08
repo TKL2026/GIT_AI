@@ -41,6 +41,10 @@ export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
   PAST_DUE = 'PAST_DUE',
   EXPIRED = 'EXPIRED',
+  /// Essai gratuit de 7 jours consommé sans paiement — distinct de EXPIRED
+  /// (voir apps/api/prisma/schema.prisma). Manquait dans ce miroir partagé ;
+  /// ajouté pour que l'admin plateforme puisse afficher ce statut réel.
+  TRIAL_EXPIRED = 'TRIAL_EXPIRED',
   CANCELLED = 'CANCELLED',
 }
 

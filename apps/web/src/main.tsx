@@ -13,19 +13,32 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { adminTokenStorage } from './admin/adminApiClient';
 import { ApiError, tokenStorage } from './lib/apiClient';
 import { theme } from './theme';
 
 // true si l'erreur a été traitée ici (redirection) — l'appelant ne doit
 // alors rien faire de plus.
 function handleAuthAndSubscriptionRedirects(error: unknown): boolean {
+  // Session PLATFORM_ADMIN distincte (autre stockage, pas de refresh token) :
+  // une 401 dans l'espace /admin doit renvoyer vers /admin/login, jamais
+  // vers le /login tenant (et inversement).
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+
   if (error instanceof ApiError && error.status === 401) {
-    tokenStorage.clear();
-    window.location.href = '/login';
+    if (isAdminRoute) {
+      adminTokenStorage.clear();
+      window.location.href = '/admin/login';
+    } else {
+      tokenStorage.clear();
+      window.location.href = '/login';
+    }
     return true;
   }
   if (error instanceof ApiError && error.status === 403 && error.code === 'SUBSCRIPTION_EXPIRED') {
-    window.location.href = '/subscription-expired';
+    if (!isAdminRoute) {
+      window.location.href = '/subscription-expired';
+    }
     return true;
   }
   return false;

@@ -4,8 +4,23 @@ import {
   PaymentMethod,
   PaymentTransactionStatus,
   PurchaseOrderStatus,
+  type StockStatus,
   SubscriptionStatus,
 } from '@copilote/shared';
+
+/** Source unique d'affichage pour l'état de stock calculé côté backend
+ * (voir apps/api/src/common/stock/stock-status.util.ts) — BUG-003. */
+export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
+  out: 'Rupture',
+  low: 'Stock bas',
+  ok: 'OK',
+};
+
+export const STOCK_STATUS_COLORS: Record<StockStatus, string> = {
+  out: 'error',
+  low: 'warning',
+  ok: 'emerald',
+};
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.CASH]: 'Espèces',
@@ -41,6 +56,7 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.ACTIVE]: 'Actif',
   [SubscriptionStatus.PAST_DUE]: 'Paiement en retard',
   [SubscriptionStatus.EXPIRED]: 'Expiré',
+  [SubscriptionStatus.TRIAL_EXPIRED]: 'Essai expiré',
   [SubscriptionStatus.CANCELLED]: 'Annulé',
 };
 
@@ -50,6 +66,7 @@ export const SUBSCRIPTION_STATUS_COLORS: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.ACTIVE]: 'emerald',
   [SubscriptionStatus.PAST_DUE]: 'warning',
   [SubscriptionStatus.EXPIRED]: 'error',
+  [SubscriptionStatus.TRIAL_EXPIRED]: 'error',
   [SubscriptionStatus.CANCELLED]: 'gray',
 };
 

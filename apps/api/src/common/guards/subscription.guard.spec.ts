@@ -11,7 +11,10 @@ function buildContext(user: Record<string, unknown> | undefined, skip = false): 
 }
 
 describe('SubscriptionGuard', () => {
-  let prisma: { subscription: { findUnique: jest.Mock; updateMany: jest.Mock } };
+  let prisma: {
+    subscription: { findUnique: jest.Mock; updateMany: jest.Mock };
+    organization: { findUnique: jest.Mock };
+  };
   let reflector: { getAllAndOverride: jest.Mock };
   let guard: SubscriptionGuard;
 
@@ -22,6 +25,11 @@ describe('SubscriptionGuard', () => {
       subscription: {
         findUnique: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      // Non suspendue par défaut : seuls les tests dédiés à la suspension
+      // (section PLATFORM_ADMIN) surchargent cette valeur.
+      organization: {
+        findUnique: jest.fn().mockResolvedValue({ suspendedAt: null }),
       },
     };
     reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
@@ -154,5 +162,43 @@ describe('SubscriptionGuard', () => {
 
     const result = await guard.canActivate(buildContext(fakeUser));
     expect(result).toBe(true);
+  });
+
+  describe('suspension PLATFORM_ADMIN', () => {
+    it('bloque (403, code ORGANIZATION_SUSPENDED) une organisation suspendue, même avec un abonnement ACTIVE', async () => {
+      prisma.organization.findUnique.mockResolvedValue({ suspendedAt: new Date() });
+      prisma.subscription.findUnique.mockResolvedValue({
+        id: 'sub-1',
+        status: 'ACTIVE',
+        currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      });
+
+      await expect(guard.canActivate(buildContext(fakeUser))).rejects.toMatchObject({
+        constructor: ForbiddenException,
+        response: { code: 'ORGANIZATION_SUSPENDED' },
+      });
+    });
+
+    it("bloque une organisation suspendue même sans ligne Subscription (qui serait sinon en accès libre)", async () => {
+      prisma.organization.findUnique.mockResolvedValue({ suspendedAt: new Date() });
+      prisma.subscription.findUnique.mockResolvedValue(null);
+
+      await expect(guard.canActivate(buildContext(fakeUser))).rejects.toMatchObject({
+        constructor: ForbiddenException,
+        response: { code: 'ORGANIZATION_SUSPENDED' },
+      });
+    });
+
+    it('laisse passer après réactivation (suspendedAt redevenu null)', async () => {
+      prisma.organization.findUnique.mockResolvedValue({ suspendedAt: null });
+      prisma.subscription.findUnique.mockResolvedValue({
+        id: 'sub-1',
+        status: 'ACTIVE',
+        currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      });
+
+      const result = await guard.canActivate(buildContext(fakeUser));
+      expect(result).toBe(true);
+    });
   });
 });
