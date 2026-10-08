@@ -19,7 +19,7 @@ import {
   IconWallet,
 } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { CopilotMarkdown } from '../../components/CopilotMarkdown';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { KpiCard } from '../../components/KpiCard';
 import { PageHeader } from '../../components/PageHeader';
@@ -351,7 +351,7 @@ export function FinancePage() {
                 </Button>
               </Group>
               {chat.data ? (
-                <ReactMarkdown>{chat.data.message}</ReactMarkdown>
+                <CopilotMarkdown>{chat.data.message}</CopilotMarkdown>
               ) : (
                 <Text size="sm" c="dimmed">
                   Demandez au copilote une lecture rapide de ces chiffres.

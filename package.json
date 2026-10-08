@@ -2,7 +2,7 @@
   "name": "copilote-ia-business",
   "private": true,
   "version": "0.1.0",
-  "description": "Copilote IA Business - ERP + copilote IA pour PME africaines",
+  "description": "UGE - ERP + Copilote IA pour PME africaines",
   "workspaces": [
     "apps/*",
     "packages/*"
