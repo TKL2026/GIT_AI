@@ -126,6 +126,8 @@ export const apiClient = {
       method: 'PATCH',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
+
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
 export function toQueryString(params: object): string {

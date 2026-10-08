@@ -13,6 +13,8 @@ function product(overrides: Partial<ProductDto> = {}): ProductDto {
     stockQuantity: 20,
     minStock: 5,
     maxStock: null,
+    stockStatus: 'ok',
+    isActive: true,
     createdAt: '2026-08-01T00:00:00.000Z',
     ...overrides,
   };
@@ -31,14 +33,20 @@ function forecast(overrides: Partial<StockForecastDto> = {}): StockForecastDto {
 }
 
 describe('computeStockHealth', () => {
-  it('classe un produit à 0 en rupture même si minStock est nul', () => {
-    const summary = computeStockHealth([product({ stockQuantity: 0, minStock: null })], []);
+  it('classe un produit à 0 en rupture même si minStock est nul (via stockStatus=out)', () => {
+    const summary = computeStockHealth(
+      [product({ stockQuantity: 0, minStock: null, stockStatus: 'out' })],
+      [],
+    );
     expect(summary.entries[0].tier).toBe('rupture');
     expect(summary.ruptureCount).toBe(1);
   });
 
-  it('classe en "bientôt en rupture" quand stock <= minStock', () => {
-    const summary = computeStockHealth([product({ stockQuantity: 5, minStock: 5 })], []);
+  it('classe en "bientôt en rupture" quand stockStatus=low', () => {
+    const summary = computeStockHealth(
+      [product({ stockQuantity: 5, minStock: 5, stockStatus: 'low' })],
+      [],
+    );
     expect(summary.entries[0].tier).toBe('soon');
   });
 
@@ -62,6 +70,14 @@ describe('computeStockHealth', () => {
   it('un produit sans historique de prévision (daysUntilStockout null) n\'est jamais "soon" par ce seul critère', () => {
     const summary = computeStockHealth([product({ stockQuantity: 50, minStock: 5 })], []);
     expect(summary.entries[0].tier).toBe('normal');
+  });
+
+  it('BUG-003 : fait confiance à stockStatus plutôt que de relire stockQuantity/minStock lui-même', () => {
+    const summary = computeStockHealth(
+      [product({ stockQuantity: 999, minStock: null, stockStatus: 'out' })],
+      [],
+    );
+    expect(summary.entries[0].tier).toBe('rupture');
   });
 
   it('calcule la valeur et le total d\'unités en stock', () => {

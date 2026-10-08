@@ -75,11 +75,21 @@ describe('Stock (e2e)', () => {
       .expect(201);
     expect(outResponse.body.data.newQuantity).toBe(25);
 
-    await request(app.getHttpServer())
+    const rejectedResponse = await request(app.getHttpServer())
       .post('/api/stock/movements/out')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ productId, quantity: 9999 })
       .expect(400);
+    // BUG-005 : le message doit permettre de comprendre l'écart sans deviner
+    // (quantité demandée + quantité disponible), pas juste "stock insuffisant".
+    expect(rejectedResponse.body.message).toContain('demandé : 9999');
+    expect(rejectedResponse.body.message).toContain('disponible : 25');
+
+    const productAfterRejection = await request(app.getHttpServer())
+      .get(`/api/products/${productId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(productAfterRejection.body.data.stockQuantity).toBe(25);
 
     const adjustmentResponse = await request(app.getHttpServer())
       .post('/api/stock/movements/adjustment')

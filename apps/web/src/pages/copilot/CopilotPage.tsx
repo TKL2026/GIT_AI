@@ -29,9 +29,9 @@ import {
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { CopilotMarkdown } from '../../components/CopilotMarkdown';
 import { PageHeader } from '../../components/PageHeader';
 import { RecommendationCard } from '../../components/RecommendationCard';
 import { useCopilotChat, useDailyReport } from '../../hooks/useCopilot';
@@ -226,7 +226,11 @@ export function CopilotPage() {
                         icon={IconAlertTriangle}
                         label="Stock critique"
                         title={p.name}
-                        description={`${p.stockQuantity} unité(s) restante(s) (seuil ${p.minStock}).`}
+                        description={
+                          p.minStock !== null
+                            ? `${p.stockQuantity} unité(s) restante(s) (seuil ${p.minStock}).`
+                            : `${p.stockQuantity} unité(s) restante(s).`
+                        }
                         actions={[{ label: 'Voir le produit', onClick: () => navigate(`/products/${p.id}`) }]}
                       />
                     ))}
@@ -320,7 +324,7 @@ export function CopilotPage() {
                   </Text>
                 ) : (
                   <TypographyStylesProvider fz="sm">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <CopilotMarkdown>{message.content}</CopilotMarkdown>
                   </TypographyStylesProvider>
                 )}
               </Paper>

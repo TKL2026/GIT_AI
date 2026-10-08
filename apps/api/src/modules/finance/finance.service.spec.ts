@@ -26,8 +26,8 @@ describe('FinanceService', () => {
       prisma.sale.findMany.mockResolvedValue([{ totalAmount: 100000 }, { totalAmount: 50000 }]);
       prisma.expense.findMany.mockResolvedValue([{ amount: 20000 }]);
       prisma.saleItem.findMany.mockResolvedValue([
-        { quantity: 2, product: { purchasePrice: 10000 } },
-        { quantity: 3, product: { purchasePrice: 5000 } },
+        { quantity: 2, unitCost: 10000 },
+        { quantity: 3, unitCost: 5000 },
       ]);
 
       const summary = await financeService.getSummary(organizationId);
@@ -41,6 +41,24 @@ describe('FinanceService', () => {
         salesCount: 2,
       });
     });
+
+    it('BUG-006 : le COGS lit unitCost figé, jamais product.purchasePrice courant', async () => {
+      prisma.sale.findMany.mockResolvedValue([{ totalAmount: 15000 }]);
+      prisma.expense.findMany.mockResolvedValue([]);
+      // unitCost=300 reflète le prix payé au moment de la vente ; même si
+      // le produit a depuis été réceptionné à un nouveau prix (ex: 280), le
+      // SaleItem ne doit jamais relire cette valeur courante.
+      prisma.saleItem.findMany.mockResolvedValue([
+        { quantity: 7, unitCost: 300, product: { purchasePrice: 280 } },
+      ]);
+
+      const summary = await financeService.getSummary(organizationId);
+
+      expect(summary.totalCogs).toBe(2100);
+      expect(prisma.saleItem.findMany).toHaveBeenCalledWith(
+        expect.not.objectContaining({ include: expect.anything() }),
+      );
+    });
   });
 
   describe('getProductsProfitability', () => {
@@ -51,21 +69,21 @@ describe('FinanceService', () => {
           productName: 'Riz',
           quantity: 2,
           lineTotal: 30000,
-          product: { purchasePrice: 10000 },
+          unitCost: 10000,
         },
         {
           productId: 'p1',
           productName: 'Riz',
           quantity: 1,
           lineTotal: 15000,
-          product: { purchasePrice: 10000 },
+          unitCost: 10000,
         },
         {
           productId: 'p2',
           productName: 'Huile',
           quantity: 3,
           lineTotal: 24000,
-          product: { purchasePrice: 5000 },
+          unitCost: 5000,
         },
       ]);
 

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Product, StockMovement, StockMovementType } from '@prisma/client';
+import { computeStockStatus } from '../../common/stock/stock-status.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
 import { StockInDto } from './dto/stock-in.dto';
@@ -101,7 +102,9 @@ export class StockService {
       if (!product) {
         throw new NotFoundException('Produit introuvable.');
       }
-      throw new BadRequestException(`Stock insuffisant pour ${product.name}.`);
+      throw new BadRequestException(
+        `Stock insuffisant pour ${product.name} (demandé : ${quantity}, disponible : ${product.stockQuantity}).`,
+      );
     }
 
     const product = await tx.product.findFirstOrThrow({
@@ -190,11 +193,16 @@ export class StockService {
     });
   }
 
+  /**
+   * Un produit à stock=0 est toujours une alerte, même sans seuil minimum
+   * configuré (voir BUG-003 / stock-status.util.ts) — l'ancien filtre Prisma
+   * `minStock: { not: null }` excluait ce cas avant même la comparaison.
+   */
   async findAlerts(organizationId: string): Promise<Product[]> {
     const products = await this.prisma.product.findMany({
-      where: { organizationId, minStock: { not: null } },
+      where: { organizationId },
       orderBy: { name: 'asc' },
     });
-    return products.filter((product) => product.stockQuantity <= (product.minStock ?? 0));
+    return products.filter((product) => computeStockStatus(product.stockQuantity, product.minStock) !== 'ok');
   }
 }

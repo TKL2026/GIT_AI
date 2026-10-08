@@ -3,10 +3,10 @@ import { Badge, Button, Card, Center, Group, Loader, SimpleGrid, Text, Title } f
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { IconShoppingCartCancel, IconSparkles, IconTruckDelivery } from '@tabler/icons-react';
-import ReactMarkdown from 'react-markdown';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole, STOCK_MUTATION_ROLES } from '../../auth/roles';
+import { CopilotMarkdown } from '../../components/CopilotMarkdown';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { DetailPageLayout } from '../../components/DetailPageLayout';
 import { useCopilotChat } from '../../hooks/useCopilot';
@@ -189,7 +189,7 @@ export function PurchaseOrderDetailPage() {
           </Button>
         </Group>
         {chat.data ? (
-          <ReactMarkdown>{chat.data.message}</ReactMarkdown>
+          <CopilotMarkdown>{chat.data.message}</CopilotMarkdown>
         ) : (
           <Text size="sm" c="dimmed">
             Demandez au copilote une analyse rapide de cette commande.

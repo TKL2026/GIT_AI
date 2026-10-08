@@ -25,6 +25,7 @@ export class SalesService {
         productName: string;
         quantity: number;
         unitPrice: number;
+        unitCost: number;
         lineTotal: number;
       }[] = [];
 
@@ -46,6 +47,10 @@ export class SalesService {
           productName: product.name,
           quantity: item.quantity,
           unitPrice,
+          // Coût figé au moment de la vente (BUG-006) : une réception
+          // ultérieure à un prix différent ne doit jamais rouvrir le COGS
+          // de cette vente déjà conclue.
+          unitCost: Number(product.purchasePrice),
           lineTotal,
         });
       }

@@ -258,9 +258,20 @@ describe('ErpDataProvider', () => {
           stockQuantity: 3,
           minStock: 5,
           maxStock: null,
+          stockStatus: 'low',
         },
       ],
     });
+  });
+
+  it('BUG-003 : normalise stockStatus=out pour un produit à stock=0 sans seuil configuré', async () => {
+    stockService.findAlerts.mockResolvedValue([
+      buildProduct({ stockQuantity: 0, minStock: null }),
+    ]);
+
+    const result = await provider.getStockAlerts(organizationId);
+
+    expect(result.items[0].stockStatus).toBe('out');
   });
 
   it('limite get_products à 50 par défaut et jamais plus de 200, avec un totalCount toujours exact', async () => {

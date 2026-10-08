@@ -28,6 +28,7 @@ import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
 import { useProducts } from '../../hooks/useProducts';
 import { useStockAlerts, useStockMovements } from '../../hooks/useStock';
 import { formatCurrency, formatDate } from '../../lib/format';
+import { STOCK_STATUS_COLORS, STOCK_STATUS_LABELS } from '../../lib/labels';
 import { PurchaseOrderFormModal } from '../purchases/PurchaseOrderFormModal';
 import { StockMovementFormModal } from './StockMovementFormModal';
 
@@ -66,7 +67,7 @@ export function StockPage() {
 
   const stockTotal = products.reduce((sum, p) => sum + p.stockQuantity, 0);
   const stockValue = products.reduce((sum, p) => sum + p.stockQuantity * p.purchasePrice, 0);
-  const outOfStockCount = products.filter((p) => p.stockQuantity === 0).length;
+  const outOfStockCount = products.filter((p) => p.stockStatus === 'out').length;
   const sevenDaysAgo = dayjs().subtract(7, 'day');
   const recentInCount = movements.filter((m) => m.type === 'IN' && dayjs(m.createdAt).isAfter(sevenDaysAgo)).length;
   const recentOutCount = movements.filter((m) => m.type === 'OUT' && dayjs(m.createdAt).isAfter(sevenDaysAgo)).length;
@@ -120,14 +121,11 @@ export function StockPage() {
     {
       key: 'status',
       label: 'État',
-      render: (p) => {
-        const isLow = p.minStock !== null && p.stockQuantity <= p.minStock;
-        return (
-          <Badge color={isLow ? 'error' : 'emerald'} variant="light">
-            {isLow ? 'Stock bas' : 'OK'}
-          </Badge>
-        );
-      },
+      render: (p) => (
+        <Badge color={STOCK_STATUS_COLORS[p.stockStatus]} variant="light">
+          {STOCK_STATUS_LABELS[p.stockStatus]}
+        </Badge>
+      ),
     },
   ];
 
@@ -165,7 +163,7 @@ export function StockPage() {
     { key: 'name', label: 'Produit', render: (p) => p.name },
     { key: 'sku', label: 'SKU', render: (p) => p.sku },
     { key: 'stockQuantity', label: 'Stock actuel', textAlign: 'right', render: (p) => p.stockQuantity },
-    { key: 'minStock', label: 'Seuil minimum', textAlign: 'right', render: (p) => p.minStock },
+    { key: 'minStock', label: 'Seuil minimum', textAlign: 'right', render: (p) => p.minStock ?? '—' },
     {
       key: 'actions',
       label: '',

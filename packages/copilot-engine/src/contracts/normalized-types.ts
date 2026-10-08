@@ -7,6 +7,8 @@ export interface PaginatedResult<T> {
   items: T[];
 }
 
+export type StockStatus = 'out' | 'low' | 'ok';
+
 export interface NormalizedProduct {
   id: string;
   name: string;
@@ -16,6 +18,10 @@ export interface NormalizedProduct {
   stockQuantity: number;
   minStock: number | null;
   maxStock: number | null;
+  /** Statut calculé côté backend (voir stock-status.util.ts) — source unique
+   * utilisée par Produits/Stock/Alertes/Dashboard, désormais aussi par le
+   * Copilote (BUG-003). */
+  stockStatus: StockStatus;
 }
 
 export interface NormalizedSaleItem {

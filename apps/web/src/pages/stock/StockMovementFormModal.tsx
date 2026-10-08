@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Group,
   Modal,
@@ -10,6 +11,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { IconAlertCircle } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useProducts } from '../../hooks/useProducts';
 import {
   useRecordStockAdjustment,
@@ -38,6 +41,7 @@ export function StockMovementFormModal({ opened, onClose }: StockMovementFormMod
   const recordIn = useRecordStockIn();
   const recordOut = useRecordStockOut();
   const recordAdjustment = useRecordStockAdjustment();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isSubmitting = recordIn.isPending || recordOut.isPending || recordAdjustment.isPending;
 
@@ -67,6 +71,7 @@ export function StockMovementFormModal({ opened, onClose }: StockMovementFormMod
   });
 
   async function handleSubmit(values: StockMovementFormValues) {
+    setErrorMessage(null);
     try {
       if (values.type === 'IN') {
         await recordIn.mutateAsync({
@@ -91,15 +96,22 @@ export function StockMovementFormModal({ opened, onClose }: StockMovementFormMod
       form.reset();
       onClose();
     } catch (err) {
-      notifications.show({
-        color: 'red',
-        message: err instanceof ApiError ? err.message : "Impossible d'enregistrer le mouvement.",
-      });
+      // BUG-005 : un toast seul disparaît trop vite pour un rejet de sortie
+      // de stock — l'alerte inline reste visible tant que l'utilisateur n'a
+      // pas corrigé la quantité.
+      const message = err instanceof ApiError ? err.message : "Impossible d'enregistrer le mouvement.";
+      setErrorMessage(message);
+      notifications.show({ color: 'red', message });
     }
   }
 
+  function handleClose() {
+    setErrorMessage(null);
+    onClose();
+  }
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Enregistrer un mouvement de stock" size="lg">
+    <Modal opened={opened} onClose={handleClose} title="Enregistrer un mouvement de stock" size="lg">
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="md">
           <SegmentedControl
@@ -148,8 +160,14 @@ export function StockMovementFormModal({ opened, onClose }: StockMovementFormMod
             {...form.getInputProps('reason')}
           />
 
+          {errorMessage && (
+            <Alert color="red" icon={<IconAlertCircle size={16} />} role="alert">
+              {errorMessage}
+            </Alert>
+          )}
+
           <Group justify="flex-end" mt="md">
-            <Button variant="default" onClick={onClose}>
+            <Button variant="default" onClick={handleClose}>
               Annuler
             </Button>
             <Button type="submit" loading={isSubmitting}>

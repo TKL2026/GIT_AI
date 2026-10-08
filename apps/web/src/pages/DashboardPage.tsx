@@ -40,9 +40,9 @@ import {
   type Icon,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { CopilotMarkdown } from '../components/CopilotMarkdown';
 import { FINANCE_ROLES, hasRole, SALES_MUTATION_ROLES, STOCK_MUTATION_ROLES } from '../auth/roles';
 import { DataTable, type DataTableColumn } from '../components/DataTable';
 import { EmptyState } from '../components/EmptyState';
@@ -66,9 +66,10 @@ import { formatCurrency, formatDate } from '../lib/format';
 import { type AlertSeverity, buildAlerts } from '../lib/dashboard/buildAlerts';
 import { bucketSalesByDay } from '../lib/dashboard/bucketSalesByDay';
 import { buildCopilotSummary } from '../lib/dashboard/buildCopilotSummary';
-import { buildPerformanceSeries, type PerformanceMetric } from '../lib/dashboard/buildPerformanceSeries';
+import { buildPerformanceSeries, hasPerformanceActivity, type PerformanceMetric } from '../lib/dashboard/buildPerformanceSeries';
 import { computeDecliningProducts } from '../lib/dashboard/computeDecliningProducts';
 import { computeStockHealth, selectStockAttention, type StockHealthEntry } from '../lib/dashboard/computeStockHealth';
+import { formatActivityAmount } from '../lib/dashboard/formatActivityAmount';
 import { mergeActivity, type ActivityItem, type ActivityType } from '../lib/dashboard/mergeActivity';
 import { changeRatio, getPeriodRange, PERIODS, type PeriodKey } from '../lib/dashboard/period';
 import { hasFeature } from '../lib/entitlements';
@@ -122,14 +123,6 @@ const ACTIVITY_ICONS: Record<ActivityType, Icon> = {
   'purchase-received': IconTruckDelivery,
   'purchase-created': IconClipboardList,
 };
-
-function formatActivityAmount(item: ActivityItem): string | null {
-  if (item.amount === null) return null;
-  if (item.type === 'stock-in' || item.type === 'stock-out' || item.type === 'stock-adjustment') {
-    return `${item.amount > 0 ? '+' : ''}${item.amount} unités`;
-  }
-  return formatCurrency(item.amount);
-}
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -377,6 +370,7 @@ export function DashboardPage() {
     'Période actuelle': p.current,
     'Période précédente': p.previous,
   }));
+  const hasPerfActivity = hasPerformanceActivity(perfSeries);
 
   const isLoading =
     isProductsLoading ||
@@ -466,7 +460,7 @@ export function DashboardPage() {
         <Card mb="xl">
           <EmptyState
             icon={IconSparkles}
-            title="Bienvenue sur Copilote IA Business !"
+            title="Bienvenue sur UGE !"
             description="Votre tableau de bord s'activera dès que vous aurez ajouté des produits et enregistré vos premières ventes."
             action={canManageStock ? { label: 'Ajouter un produit', onClick: openProductModal } : undefined}
           />
@@ -566,7 +560,7 @@ export function DashboardPage() {
                   {dailyReport.data ? 'Actualiser' : 'Analyse complète'}
                 </Button>
               </Group>
-              {dailyReport.data ? <ReactMarkdown>{dailyReport.data.report}</ReactMarkdown> : <Text size="sm">{copilotSummary}</Text>}
+              {dailyReport.data ? <CopilotMarkdown>{dailyReport.data.report}</CopilotMarkdown> : <Text size="sm">{copilotSummary}</Text>}
             </Card>
           )}
 
@@ -580,6 +574,15 @@ export function DashboardPage() {
                   <Text size="sm" c="dimmed">
                     Sélectionnez une période de plusieurs jours pour voir une tendance.
                   </Text>
+                </Card>
+              ) : !hasPerfActivity ? (
+                <Card mb="xl">
+                  <EmptyState
+                    icon={IconReceipt}
+                    title="Aucune vente sur cette période"
+                    description="Le graphique s'affichera dès votre première vente enregistrée."
+                    action={canManageSales ? { label: 'Enregistrer une vente', onClick: openSaleModal } : undefined}
+                  />
                 </Card>
               ) : (
                 <Card mb="xl">

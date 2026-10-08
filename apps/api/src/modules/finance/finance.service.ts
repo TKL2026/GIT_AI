@@ -52,12 +52,12 @@ export class FinanceService {
 
     const saleItems = await this.prisma.saleItem.findMany({
       where: { sale: { organizationId, ...(dateFilter ? { createdAt: dateFilter } : {}) } },
-      include: { product: true },
     });
-    const totalCogs = saleItems.reduce(
-      (sum, item) => sum + item.quantity * Number(item.product.purchasePrice),
-      0,
-    );
+    // BUG-006 : unitCost est figé au moment de la vente (voir SaleItem),
+    // jamais relu sur Product.purchasePrice qui, lui, évolue à chaque
+    // réception — sinon une vente déjà conclue verrait son COGS historique
+    // changer rétroactivement.
+    const totalCogs = saleItems.reduce((sum, item) => sum + item.quantity * Number(item.unitCost), 0);
 
     const grossMargin = totalRevenue - totalCogs;
     const netProfit = grossMargin - totalExpenses;
@@ -81,34 +81,37 @@ export class FinanceService {
 
     const saleItems = await this.prisma.saleItem.findMany({
       where: { sale: { organizationId, ...(dateFilter ? { createdAt: dateFilter } : {}) } },
-      include: { product: true },
     });
 
     const grouped = new Map<
       string,
-      { productId: string; productName: string; quantitySold: number; totalRevenue: number; purchasePrice: number }
+      { productId: string; productName: string; quantitySold: number; totalRevenue: number; totalCost: number }
     >();
 
     for (const item of saleItems) {
       const lineTotal = Number(item.lineTotal);
+      // BUG-006 : coût figé au moment de chaque vente (SaleItem.unitCost),
+      // jamais Product.purchasePrice courant.
+      const itemCost = item.quantity * Number(item.unitCost);
       const existing = grouped.get(item.productId);
       if (existing) {
         existing.quantitySold += item.quantity;
         existing.totalRevenue += lineTotal;
+        existing.totalCost += itemCost;
       } else {
         grouped.set(item.productId, {
           productId: item.productId,
           productName: item.productName,
           quantitySold: item.quantity,
           totalRevenue: lineTotal,
-          purchasePrice: Number(item.product.purchasePrice),
+          totalCost: itemCost,
         });
       }
     }
 
     return Array.from(grouped.values())
       .map((entry) => {
-        const estimatedCost = entry.quantitySold * entry.purchasePrice;
+        const estimatedCost = entry.totalCost;
         return {
           productId: entry.productId,
           productName: entry.productName,

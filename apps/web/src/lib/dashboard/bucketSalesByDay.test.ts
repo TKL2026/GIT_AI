@@ -14,6 +14,8 @@ function product(overrides: Partial<ProductDto> = {}): ProductDto {
     stockQuantity: 20,
     minStock: 5,
     maxStock: null,
+    stockStatus: 'ok',
+    isActive: true,
     createdAt: '2026-08-01T00:00:00.000Z',
     ...overrides,
   };

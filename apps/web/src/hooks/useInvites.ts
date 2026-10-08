@@ -3,10 +3,11 @@ import { invitesApi, type AcceptInviteInput, type CreateInviteInput } from '../a
 
 const INVITES_QUERY_KEY = ['organization', 'invites'];
 
-export function useInvites() {
+export function useInvites(enabled = true) {
   return useQuery({
     queryKey: INVITES_QUERY_KEY,
     queryFn: invitesApi.list,
+    enabled,
   });
 }
 

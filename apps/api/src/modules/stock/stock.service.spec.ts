@@ -163,5 +163,28 @@ describe('StockService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('p1');
     });
+
+    it('BUG-003 : retourne un produit à stock=0 même sans seuil minimum configuré', async () => {
+      prisma.product.findMany = jest.fn().mockResolvedValue([
+        { ...baseProduct, id: 'p1', stockQuantity: 0, minStock: null },
+        { ...baseProduct, id: 'p2', stockQuantity: 50, minStock: null },
+      ]);
+
+      const result = await stockService.findAlerts(organizationId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('p1');
+    });
+
+    it('ne filtre plus via Prisma minStock: { not: null } (toute la logique passe par computeStockStatus)', async () => {
+      const findMany = jest.fn().mockResolvedValue([]);
+      prisma.product.findMany = findMany;
+
+      await stockService.findAlerts(organizationId);
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId } }),
+      );
+    });
   });
 });

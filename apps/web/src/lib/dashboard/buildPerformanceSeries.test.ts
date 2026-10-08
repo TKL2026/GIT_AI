@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DailyBucket } from './bucketSalesByDay';
-import { buildPerformanceSeries } from './buildPerformanceSeries';
+import { buildPerformanceSeries, hasPerformanceActivity } from './buildPerformanceSeries';
 
 function bucket(overrides: Partial<DailyBucket> = {}): DailyBucket {
   return { date: '2026-08-10', revenue: 1000, salesCount: 4, margin: 300, ...overrides };
@@ -52,5 +52,29 @@ describe('buildPerformanceSeries', () => {
     const bkt = bucket({ revenue: 0, margin: 0 });
     const series = buildPerformanceSeries([bkt], [bkt], 'marginRatio');
     expect(series[0].current).toBe(0);
+  });
+});
+
+describe('hasPerformanceActivity', () => {
+  it('BUG-001 : renvoie false quand toutes les valeurs sont nulles ou à 0 (aucune vente)', () => {
+    expect(
+      hasPerformanceActivity([
+        { label: '1', current: 0, previous: 0 },
+        { label: '2', current: null, previous: null },
+      ]),
+    ).toBe(false);
+  });
+
+  it('renvoie true dès qu\'une seule valeur (courante ou précédente) est non nulle', () => {
+    expect(
+      hasPerformanceActivity([
+        { label: '1', current: 0, previous: 0 },
+        { label: '2', current: 1500, previous: 0 },
+      ]),
+    ).toBe(true);
+  });
+
+  it('renvoie false pour une série vide', () => {
+    expect(hasPerformanceActivity([])).toBe(false);
   });
 });

@@ -1,19 +1,26 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthenticatedUser } from '../../common/types/authenticated-user.interface';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ImportProductsResultDto } from './dto/import-products-result.dto';
+import { ImportProductsDto } from './dto/import-products.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductThresholdsDto } from './dto/update-product-thresholds.dto';
+import { ProductsImportService } from './products-import.service';
 import { ProductsService } from './products.service';
 
 @ApiTags('products')
 @ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly productsImportService: ProductsImportService,
+  ) {}
 
   @Get()
   @ApiOkResponse({ type: [ProductResponseDto] })
@@ -43,6 +50,16 @@ export class ProductsController {
     return ProductResponseDto.fromEntity(product);
   }
 
+  @Post('import')
+  @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR, Role.STOCK_MANAGER)
+  @ApiOkResponse({ type: ImportProductsResultDto })
+  async importProducts(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() dto: ImportProductsDto,
+  ): Promise<ImportProductsResultDto> {
+    return this.productsImportService.import(currentUser.organizationId, dto);
+  }
+
   @Patch(':id/thresholds')
   @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR, Role.STOCK_MANAGER)
   @ApiOkResponse({ type: ProductResponseDto })
@@ -56,6 +73,29 @@ export class ProductsController {
       id,
       dto,
     );
+    return ProductResponseDto.fromEntity(product);
+  }
+
+  @Patch(':id')
+  @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR, Role.STOCK_MANAGER)
+  @ApiOkResponse({ type: ProductResponseDto })
+  async update(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ): Promise<ProductResponseDto> {
+    const product = await this.productsService.update(currentUser.organizationId, id, dto);
+    return ProductResponseDto.fromEntity(product);
+  }
+
+  @Delete(':id')
+  @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR, Role.STOCK_MANAGER)
+  @ApiOkResponse({ type: ProductResponseDto })
+  async archive(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('id') id: string,
+  ): Promise<ProductResponseDto> {
+    const product = await this.productsService.archive(currentUser.organizationId, id);
     return ProductResponseDto.fromEntity(product);
   }
 }

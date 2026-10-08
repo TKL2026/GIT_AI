@@ -257,6 +257,7 @@ function toNormalizedProduct(dto: ProductResponseDto): NormalizedProduct {
     stockQuantity: dto.stockQuantity,
     minStock: dto.minStock,
     maxStock: dto.maxStock,
+    stockStatus: dto.stockStatus,
   };
 }
 

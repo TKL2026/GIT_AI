@@ -21,9 +21,9 @@ export interface StockHealthSummary {
 const SOON_THRESHOLD_DAYS = 7;
 
 /**
- * /stock/alerts n'a qu'un seuil binaire (<=minStock). Ici on dérive 3 paliers
- * réels à partir de stockQuantity/minStock (Product) et daysUntilStockout
- * (prévision de vente) — pas de nouvel endpoint nécessaire.
+ * Part de product.stockStatus (source unique calculée côté backend, voir
+ * stock-status.util.ts) et l'enrichit avec daysUntilStockout (prévision de
+ * vente) pour une nuance 'soon' supplémentaire — jamais l'inverse.
  */
 export function computeStockHealth(
   products: ProductDto[],
@@ -37,10 +37,10 @@ export function computeStockHealth(
     const averageDailySales = productForecast?.averageDailySales ?? 0;
 
     let tier: StockHealthTier;
-    if (product.stockQuantity === 0) {
+    if (product.stockStatus === 'out') {
       tier = 'rupture';
     } else if (
-      (product.minStock !== null && product.stockQuantity <= product.minStock) ||
+      product.stockStatus === 'low' ||
       (daysUntilStockout !== null && daysUntilStockout <= SOON_THRESHOLD_DAYS)
     ) {
       tier = 'soon';

@@ -1,16 +1,24 @@
 import { StockMovementType, type SaleItemDto, type StockMovementDto } from '@copilote/shared';
 import { Badge, Button, Card, Center, Group, Loader, SimpleGrid, Text, Title } from '@mantine/core';
-import { IconSparkles } from '@tabler/icons-react';
+import { useDisclosure } from '@mantine/hooks';
+import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
+import { IconArchive, IconPencil, IconSparkles } from '@tabler/icons-react';
 import { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
+import { hasRole, STOCK_MUTATION_ROLES } from '../../auth/roles';
+import { CopilotMarkdown } from '../../components/CopilotMarkdown';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { DetailPageLayout } from '../../components/DetailPageLayout';
 import { useCopilotChat } from '../../hooks/useCopilot';
-import { useProducts } from '../../hooks/useProducts';
+import { useArchiveProduct, useProduct } from '../../hooks/useProducts';
 import { useSales } from '../../hooks/useSales';
 import { useStockMovements } from '../../hooks/useStock';
+import { ApiError } from '../../lib/apiClient';
 import { formatCurrency, formatDate } from '../../lib/format';
+import { STOCK_STATUS_COLORS, STOCK_STATUS_LABELS } from '../../lib/labels';
+import { ProductFormModal } from './ProductFormModal';
 
 const MOVEMENT_LABELS: Record<StockMovementType, { label: string; color: string }> = {
   [StockMovementType.IN]: { label: 'Entrée', color: 'emerald' },
@@ -27,12 +35,44 @@ interface SaleLine {
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: products = [], isLoading: isProductLoading } = useProducts();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: product, isLoading: isProductLoading } = useProduct(id);
   const { data: movements = [], isLoading: isMovementsLoading } = useStockMovements(id);
   const { data: sales = [], isLoading: isSalesLoading } = useSales();
   const chat = useCopilotChat();
+  const archiveProduct = useArchiveProduct();
+  const [editModalOpened, { open: openEditModal, close: closeEditModal }] = useDisclosure(false);
 
-  const product = products.find((p) => p.id === id);
+  const canManage = hasRole(user, STOCK_MUTATION_ROLES);
+
+  function handleArchive() {
+    if (!product) return;
+    modals.openConfirmModal({
+      title: 'Archiver ce produit ?',
+      children: (
+        <Text size="sm">
+          <strong>{product.name}</strong> sera masqué du catalogue, du sélecteur de ventes/achats et
+          des alertes de stock. Son historique (ventes, mouvements) reste conservé et consultable
+          depuis cette fiche. Cette action peut être annulée uniquement depuis la base de données.
+        </Text>
+      ),
+      labels: { confirm: 'Archiver', cancel: 'Annuler' },
+      confirmProps: { color: 'error' },
+      onConfirm: async () => {
+        try {
+          await archiveProduct.mutateAsync(product.id);
+          notifications.show({ color: 'green', message: 'Produit archivé.' });
+          navigate('/products');
+        } catch (err) {
+          notifications.show({
+            color: 'red',
+            message: err instanceof ApiError ? err.message : "Impossible d'archiver le produit.",
+          });
+        }
+      },
+    });
+  }
 
   const saleLines = useMemo<SaleLine[]>(
     () =>
@@ -87,10 +127,37 @@ export function ProductDetailPage() {
     );
   }
 
-  const isLow = product.minStock !== null && product.stockQuantity <= product.minStock;
-
   return (
-    <DetailPageLayout title={product.name} description={`SKU ${product.sku}`} backTo="/products">
+    <DetailPageLayout
+      title={product.name}
+      description={`SKU ${product.sku}`}
+      backTo="/products"
+      action={
+        canManage && (
+          <Group gap="xs">
+            {!product.isActive && (
+              <Badge color="gray" variant="light">
+                Archivé
+              </Badge>
+            )}
+            <Button variant="default" leftSection={<IconPencil size={16} />} onClick={openEditModal}>
+              Modifier
+            </Button>
+            {product.isActive && (
+              <Button
+                variant="light"
+                color="error"
+                leftSection={<IconArchive size={16} />}
+                loading={archiveProduct.isPending}
+                onClick={handleArchive}
+              >
+                Archiver
+              </Button>
+            )}
+          </Group>
+        )
+      }
+    >
       <Card>
         <Title order={5} mb="md">
           Informations générales
@@ -128,9 +195,9 @@ export function ProductDetailPage() {
             </Text>
             <Group gap="xs">
               <Text fw={600}>{product.stockQuantity}</Text>
-              {isLow && (
-                <Badge color="error" variant="light" size="sm">
-                  Stock bas
+              {product.stockStatus !== 'ok' && (
+                <Badge color={STOCK_STATUS_COLORS[product.stockStatus]} variant="light" size="sm">
+                  {STOCK_STATUS_LABELS[product.stockStatus]}
                 </Badge>
               )}
             </Group>
@@ -197,13 +264,15 @@ export function ProductDetailPage() {
           </Button>
         </Group>
         {chat.data ? (
-          <ReactMarkdown>{chat.data.message}</ReactMarkdown>
+          <CopilotMarkdown>{chat.data.message}</CopilotMarkdown>
         ) : (
           <Text size="sm" c="dimmed">
             Demandez au copilote une analyse rapide de ce produit.
           </Text>
         )}
       </Card>
+
+      <ProductFormModal opened={editModalOpened} onClose={closeEditModal} product={product} />
     </DetailPageLayout>
   );
 }

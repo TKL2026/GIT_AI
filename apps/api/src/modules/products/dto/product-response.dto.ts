@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Product } from '@prisma/client';
+import { computeStockStatus, StockStatus } from '../../../common/stock/stock-status.util';
 
 export class ProductResponseDto {
   @ApiProperty()
@@ -29,6 +30,12 @@ export class ProductResponseDto {
   @ApiPropertyOptional()
   maxStock!: number | null;
 
+  @ApiProperty({ enum: ['out', 'low', 'ok'] })
+  stockStatus!: StockStatus;
+
+  @ApiProperty()
+  isActive!: boolean;
+
   @ApiProperty()
   createdAt!: Date;
 
@@ -43,6 +50,8 @@ export class ProductResponseDto {
     dto.stockQuantity = product.stockQuantity;
     dto.minStock = product.minStock;
     dto.maxStock = product.maxStock;
+    dto.stockStatus = computeStockStatus(product.stockQuantity, product.minStock);
+    dto.isActive = product.isActive;
     dto.createdAt = product.createdAt;
     return dto;
   }

@@ -33,7 +33,7 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_stock_alerts',
     description:
-      "Renvoie les produits dont la quantité en stock est en dessous (ou égale) de leur seuil minimum — risques de rupture. Renvoie aussi `totalCount`, le nombre total d'alertes (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage sans avoir besoin de la liste complète.",
+      "Renvoie les produits en rupture (stock à 0, même sans seuil configuré) ou dont la quantité en stock est en dessous (ou égale) de leur seuil minimum configuré — risques de rupture. Chaque produit inclut `stockStatus` ('out' | 'low' | 'ok'), le statut officiel déjà calculé par le backend : fie-toi à ce champ plutôt que de recalculer un verdict à partir de `stockQuantity`/`minStock`. Renvoie aussi `totalCount`, le nombre total d'alertes (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage sans avoir besoin de la liste complète.",
     input_schema: {
       type: 'object',
       properties: {
@@ -47,7 +47,7 @@ export const COPILOT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_products',
     description:
-      "Renvoie le catalogue des produits avec prix d'achat, prix de vente et quantité en stock, ainsi que `totalCount`, le nombre total de produits (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage ('combien de produits ?') sans avoir besoin du catalogue complet. Augmente `limit` si une analyse porte réellement sur le détail de nombreux produits.",
+      "Renvoie le catalogue des produits avec prix d'achat, prix de vente, quantité en stock et `stockStatus` ('out' | 'low' | 'ok', le statut de stock officiel déjà calculé par le backend — à utiliser tel quel plutôt que de le redéduire de `stockQuantity`/`minStock`), ainsi que `totalCount`, le nombre total de produits (toujours exact même si la liste `items` est limitée) — utile pour répondre à une question de comptage ('combien de produits ?') sans avoir besoin du catalogue complet. Augmente `limit` si une analyse porte réellement sur le détail de nombreux produits.",
     input_schema: {
       type: 'object',
       properties: {

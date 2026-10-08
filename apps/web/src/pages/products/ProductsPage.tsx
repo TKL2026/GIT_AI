@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { SearchInput } from '../../components/SearchInput';
 import { useProducts } from '../../hooks/useProducts';
 import { formatCurrency } from '../../lib/format';
+import { STOCK_STATUS_COLORS, STOCK_STATUS_LABELS } from '../../lib/labels';
 import { ProductFormModal } from './ProductFormModal';
 
 export function ProductsPage() {
@@ -84,14 +85,11 @@ export function ProductsPage() {
     {
       key: 'status',
       label: 'État',
-      render: (p) => {
-        const isLow = p.minStock !== null && p.stockQuantity <= p.minStock;
-        return (
-          <Badge color={isLow ? 'error' : 'emerald'} variant="light">
-            {isLow ? 'Stock bas' : 'OK'}
-          </Badge>
-        );
-      },
+      render: (p) => (
+        <Badge color={STOCK_STATUS_COLORS[p.stockStatus]} variant="light">
+          {STOCK_STATUS_LABELS[p.stockStatus]}
+        </Badge>
+      ),
     },
     {
       key: 'actions',
@@ -127,7 +125,11 @@ export function ProductsPage() {
         rows={filteredProducts}
         rowKey={(p) => p.id}
         isLoading={isLoading}
-        emptyMessage="Aucun produit enregistré pour le moment."
+        emptyMessage={
+          search.trim()
+            ? 'Aucun produit ne correspond à votre recherche.'
+            : 'Aucun produit enregistré pour le moment.'
+        }
         pageSize={10}
         onRowClick={(p) => navigate(`/products/${p.id}`)}
       />

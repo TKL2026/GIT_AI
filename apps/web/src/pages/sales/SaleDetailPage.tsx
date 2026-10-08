@@ -1,8 +1,8 @@
 import type { SaleItemDto } from '@copilote/shared';
 import { Badge, Button, Card, Center, Group, Loader, SimpleGrid, Text, Title } from '@mantine/core';
 import { IconSparkles } from '@tabler/icons-react';
-import ReactMarkdown from 'react-markdown';
 import { useParams } from 'react-router-dom';
+import { CopilotMarkdown } from '../../components/CopilotMarkdown';
 import { DataTable, type DataTableColumn } from '../../components/DataTable';
 import { DetailPageLayout } from '../../components/DetailPageLayout';
 import { useCopilotChat } from '../../hooks/useCopilot';
@@ -67,7 +67,9 @@ export function SaleDetailPage() {
             <Text size="xs" c="dimmed">
               Paiement
             </Text>
-            <Badge variant="light">{PAYMENT_METHOD_LABELS[sale.paymentMethod]}</Badge>
+            <Badge variant="light" style={{ whiteSpace: 'normal', height: 'auto' }}>
+              {PAYMENT_METHOD_LABELS[sale.paymentMethod]}
+            </Badge>
           </div>
           <div>
             <Text size="xs" c="dimmed">
@@ -110,7 +112,7 @@ export function SaleDetailPage() {
           </Button>
         </Group>
         {chat.data ? (
-          <ReactMarkdown>{chat.data.message}</ReactMarkdown>
+          <CopilotMarkdown>{chat.data.message}</CopilotMarkdown>
         ) : (
           <Text size="sm" c="dimmed">
             Demandez au copilote une analyse rapide de cette vente.

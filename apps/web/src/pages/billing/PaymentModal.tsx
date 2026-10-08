@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { useCheckout, useTransactionStatus, invalidateBillingAfterPayment } from '../../hooks/useBilling';
 import { ApiError } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/format';
+import { isValidCameroonPhone } from '../../lib/phone';
 
 interface PaymentModalProps {
   opened: boolean;
@@ -47,9 +48,13 @@ export function PaymentModal({ opened, onClose, plan }: PaymentModalProps) {
 
   const form = useForm<PaymentFormValues>({
     initialValues: { operator: null, phoneNumber: '' },
+    validateInputOnBlur: true,
     validate: {
       operator: (value) => (value ? null : 'Choisissez un mode de paiement.'),
-      phoneNumber: (value) => (/^\+?\d[\d\s]{7,14}$/.test(value) ? null : 'Numéro invalide.'),
+      phoneNumber: (value) =>
+        isValidCameroonPhone(value)
+          ? null
+          : 'Numéro invalide (format attendu : 6XXXXXXXX ou 2376XXXXXXXX).',
     },
   });
 

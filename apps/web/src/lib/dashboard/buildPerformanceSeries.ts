@@ -44,3 +44,12 @@ export function buildPerformanceSeries(
     };
   });
 }
+
+/**
+ * BUG-001 : sans aucune vente, toutes les valeurs valent 0 et Recharts
+ * invente un axe arbitraire (ex. 0/1/2/3/4) faute de vraie échelle — permet
+ * au Dashboard de préférer un état vide explicite à ce graphique trompeur.
+ */
+export function hasPerformanceActivity(series: PerformancePoint[]): boolean {
+  return series.some((p) => (p.current ?? 0) !== 0 || (p.previous ?? 0) !== 0);
+}

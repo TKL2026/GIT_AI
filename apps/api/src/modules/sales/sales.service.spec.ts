@@ -16,11 +16,13 @@ describe('SalesService', () => {
     id: 'prod-a',
     name: 'Riz 25kg',
     salePrice: 15000,
+    purchasePrice: 12000,
   };
   const productB = {
     id: 'prod-b',
     name: 'Huile 5L',
     salePrice: 8000,
+    purchasePrice: 6000,
   };
 
   beforeEach(() => {
@@ -69,6 +71,7 @@ describe('SalesService', () => {
               productName: productA.name,
               quantity: 2,
               unitPrice: 15000,
+              unitCost: 12000,
               lineTotal: 30000,
             },
             {
@@ -76,6 +79,7 @@ describe('SalesService', () => {
               productName: productB.name,
               quantity: 3,
               unitPrice: 8000,
+              unitCost: 6000,
               lineTotal: 24000,
             },
           ],
@@ -83,6 +87,27 @@ describe('SalesService', () => {
       }),
       include: { items: true },
     });
+  });
+
+  it('BUG-006 : fige unitCost sur Product.purchasePrice au moment de la vente', async () => {
+    stockService.decrementStockInTransaction.mockResolvedValueOnce({
+      product: productA,
+      movement: {},
+    });
+    prisma.sale.create.mockResolvedValue({ id: 'sale-1', items: [] });
+
+    await salesService.create(organizationId, userId, {
+      paymentMethod: PaymentMethod.CASH,
+      items: [{ productId: productA.id, quantity: 1 }],
+    });
+
+    expect(prisma.sale.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items: { create: [expect.objectContaining({ unitCost: productA.purchasePrice })] },
+        }),
+      }),
+    );
   });
 
   it('propage l’échec si le stock est insuffisant pour une ligne (annule toute la vente)', async () => {
