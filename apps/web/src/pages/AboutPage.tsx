@@ -2,10 +2,17 @@ import { Anchor, Center, Stack, Text, Title } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { Seo } from '../components/Seo';
 
 export function AboutPage() {
   return (
-    <Center mih="100vh" p="md" style={{ alignItems: 'flex-start' }}>
+    <>
+      <Seo
+        title="UGE | À propos"
+        description="Découvrez pourquoi UGE a été créé : réunir stock, ventes, achats et finance dans un seul espace, avec une intelligence artificielle qui aide les PME à décider plus vite."
+        path="/a-propos"
+      />
+      <Center mih="100vh" p="md" style={{ alignItems: 'flex-start' }}>
       <Stack w="100%" maw={720} gap="xl" py="xl">
         <Stack gap="md">
           <Center>
@@ -25,10 +32,10 @@ export function AboutPage() {
 
         <Stack gap="xs">
           <Title order={1} fz={{ base: 28, sm: 34 }}>
-            À propos de Copilote IA Business
+            À propos de UGE
           </Title>
           <Text size="lg" c="dimmed">
-            Un copilote intelligent pour les entreprises qui vendent et qui stockent.
+            Un Copilote IA pour les entreprises qui vendent et qui stockent.
           </Text>
         </Stack>
 
@@ -46,12 +53,12 @@ export function AboutPage() {
 
         <Stack gap="sm">
           <Title order={3} fz={20}>
-            Pourquoi nous avons créé Copilote IA Business
+            Pourquoi nous avons créé UGE
           </Title>
           <Text c="dimmed">
             Nous pensons que la gestion d'entreprise ne devrait pas être compliquée, et que les
             données d'une entreprise devraient réellement l'aider à avancer — pas seulement être
-            enregistrées quelque part. Copilote IA Business réunit stock, ventes, achats et
+            enregistrées quelque part. UGE réunit stock, ventes, achats et
             finance dans un seul espace, et y ajoute une intelligence artificielle capable de lire
             ces données pour vous aider à les comprendre et à agir.
           </Text>
@@ -74,7 +81,7 @@ export function AboutPage() {
             Une ambition internationale
           </Title>
           <Text c="dimmed">
-            Copilote IA Business est conçu pour s'adapter à des entreprises de toutes tailles, où
+            UGE est conçu pour s'adapter à des entreprises de toutes tailles, où
             qu'elles se trouvent — sans se limiter à une seule région du monde. Notre objectif est
             de construire un produit utile partout où des entreprises vendent et stockent.
           </Text>
@@ -84,6 +91,7 @@ export function AboutPage() {
           Cette page évoluera à mesure que le projet grandit.
         </Text>
       </Stack>
-    </Center>
+      </Center>
+    </>
   );
 }

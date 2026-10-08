@@ -13,23 +13,27 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Produit',
     links: [
-      { label: 'Fonctionnalités', href: '#produit' },
-      { label: 'Copilote IA', href: '#copilote-ia' },
-      { label: 'Gestion du stock', href: '#produit' },
-      { label: 'WhatsApp', href: '#whatsapp' },
+      { label: 'Fonctionnalités', to: '/fonctionnalites' },
+      { label: 'Gestion de stock', to: '/gestion-stock' },
+      { label: "Gestion d'entreprise", to: '/gestion-entreprise' },
+      { label: 'Copilote IA', to: '/copilote-ia' },
+      { label: 'WhatsApp', to: '/whatsapp' },
       { label: 'Tarifs', to: '/#tarifs' },
     ],
   },
   {
     title: 'Entreprise',
     links: [
-      { label: 'À propos', to: '/about' },
+      { label: 'À propos', to: '/a-propos' },
       { label: 'Contact', to: '/contact' },
     ],
   },
   {
     title: 'Ressources',
-    links: [{ label: 'FAQ', href: '#faq' }],
+    links: [
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Actualités', to: '/actualites' },
+    ],
   },
   {
     title: 'Légal',
@@ -84,7 +88,7 @@ export function MarketingFooter() {
 
       <Group justify="space-between">
         <Text size="xs" c="dimmed">
-          © {new Date().getFullYear()} Copilote IA Business. Tous droits réservés.
+          © {new Date().getFullYear()} UGE. Tous droits réservés.
         </Text>
       </Group>
     </Container>

@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+
+# Espace applicatif authentifié — jamais indexable
+Disallow: /dashboard
+Disallow: /products
+Disallow: /stock
+Disallow: /sales
+Disallow: /commercial
+Disallow: /purchases
+Disallow: /finance
+Disallow: /copilot
+Disallow: /users
+Disallow: /billing
+
+# Authentification, inscription et parcours transactionnels — pas de valeur SEO
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /demo
+Disallow: /accept-invite
+Disallow: /onboarding
+Disallow: /checkout
+Disallow: /subscription-expired
+
+Sitemap: https://myuge.pro/sitemap.xml

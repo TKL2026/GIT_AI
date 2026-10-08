@@ -1,6 +1,7 @@
 import './marketing.css';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Seo } from '../components/Seo';
 import { MarketingFooter } from './MarketingFooter';
 import { MarketingHeader } from './MarketingHeader';
 import { AudienceSection } from './sections/AudienceSection';
@@ -40,6 +41,28 @@ export function LandingPage() {
 
   return (
     <>
+      <Seo
+        title="UGE — Votre entreprise travaille. Votre Copilote IA analyse."
+        description="Stock, ventes, achats, finance et intelligence artificielle réunis dans un seul espace. UGE aide les PME à comprendre leur activité et à décider plus vite."
+        path="/"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'UGE',
+            url: 'https://myuge.pro',
+            logo: 'https://myuge.pro/favicon.svg',
+            description:
+              "UGE réunit stock, ventes, achats et finance dans un seul espace, avec un Copilote IA qui aide les PME à comprendre leur activité.",
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'UGE',
+            url: 'https://myuge.pro',
+          },
+        ]}
+      />
       <MarketingHeader />
       <main>
         <HeroSection />

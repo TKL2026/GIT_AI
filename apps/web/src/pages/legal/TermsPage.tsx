@@ -4,7 +4,12 @@ import { LegalPageLayout } from './LegalPageLayout';
 
 export function TermsPage() {
   return (
-    <LegalPageLayout title="Conditions d'utilisation" maxWidth={820}>
+    <LegalPageLayout
+      title="Conditions d'utilisation"
+      maxWidth={820}
+      seoDescription="Conditions d'utilisation du logiciel de gestion d'entreprise UGE."
+      seoPath="/terms"
+    >
       <Text size="sm" c="dimmed">
         Dernière mise à jour : à compléter à la publication.
       </Text>
@@ -13,8 +18,8 @@ export function TermsPage() {
         1. Objet
       </Title>
       <Text size="sm">
-        Copilote IA Business est un logiciel de gestion d'entreprise (stock, ventes, achats,
-        finance) enrichi d'un copilote intelligent, édité par {orFallback(COMPANY_INFO.legalName)}
+        UGE est un logiciel de gestion d'entreprise (stock, ventes, achats,
+        finance) enrichi d'un Copilote IA, édité par {orFallback(COMPANY_INFO.legalName)}
         . Les présentes conditions régissent l'accès et l'utilisation du service par toute
         organisation ou utilisateur créant un compte.
       </Text>

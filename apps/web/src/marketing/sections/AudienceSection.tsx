@@ -21,7 +21,7 @@ export function AudienceSection() {
               Pensé pour les entreprises qui vendent et qui stockent.
             </Title>
             <Text c="dimmed" size="lg">
-              Que vous soyez une PME en France, en Europe ou en Afrique, Copilote IA Business
+              Que vous soyez une PME en France, en Europe ou en Afrique, UGE
               s'adapte à votre activité.
             </Text>
           </Stack>

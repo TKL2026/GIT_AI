@@ -4,7 +4,11 @@ import { LegalPageLayout } from './LegalPageLayout';
 
 export function ContactPage() {
   return (
-    <LegalPageLayout title="Contact">
+    <LegalPageLayout
+      title="Contact"
+      seoDescription="Une question sur UGE ? Contactez-nous directement par email."
+      seoPath="/contact"
+    >
       <Stack gap="xs">
         <Text c="dimmed">
           Une question, un besoin spécifique, ou envie d'une offre sur mesure ? Écrivez-nous :

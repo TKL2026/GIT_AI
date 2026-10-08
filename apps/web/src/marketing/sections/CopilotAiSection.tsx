@@ -110,7 +110,7 @@ export function CopilotAiSection() {
                     <IconMessageChatbot size={24} />
                   </ThemeIcon>
                   <Text fw={700} size="lg">
-                    Le Copilote IA Business
+                    Le Copilote IA de UGE
                   </Text>
                   <Text size="sm" c="dimmed">
                     Une seule intelligence, connectée à tous vos modules.

@@ -3,9 +3,9 @@ import { Reveal } from '../Reveal';
 
 const FAQS = [
   {
-    question: "Qu'est-ce que Copilote IA Business ?",
+    question: "Qu'est-ce que UGE ?",
     answer:
-      'Un logiciel de gestion — stock, ventes, achats, finance — enrichi d\'un copilote intelligent qui analyse vos données et vous aide à prendre de meilleures décisions.',
+      'Un logiciel de gestion — stock, ventes, achats, finance — enrichi d\'un Copilote IA qui analyse vos données et vous aide à prendre de meilleures décisions.',
   },
   {
     question: 'Est-ce uniquement un logiciel de gestion de stock ?',
@@ -39,7 +39,7 @@ const FAQS = [
     answer: 'Quelques minutes : créez votre espace, ajoutez vos produits, et vous êtes opérationnel.',
   },
   {
-    question: 'Copilote IA Business est-il adapté aux PME ?',
+    question: 'UGE est-il adapté aux PME ?',
     answer: 'Oui, la solution est pensée pour les PME qui vendent et qui stockent, où qu\'elles se trouvent.',
   },
   {

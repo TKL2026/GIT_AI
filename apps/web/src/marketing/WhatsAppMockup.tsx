@@ -81,7 +81,7 @@ export function WhatsAppMockup() {
         </Avatar>
         <div>
           <Text size="sm" fw={600} c="white">
-            Copilote IA Business
+            UGE
           </Text>
           <Text size="11px" c="#d1f4ea">
             en ligne

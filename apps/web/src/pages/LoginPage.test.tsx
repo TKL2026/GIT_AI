@@ -17,8 +17,7 @@ describe('LoginPage', () => {
       </MantineProvider>,
     );
 
-    expect(screen.getByText(/copilote/i)).toBeInTheDocument();
-    expect(screen.getByText('IA')).toBeInTheDocument();
+    expect(screen.getByText('UGE')).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/mot de passe/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /se connecter/i })).toBeInTheDocument();

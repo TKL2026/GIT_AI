@@ -1,4 +1,4 @@
-# Copilote IA Business
+# UGE
 
 Plateforme SaaS pour PME africaines : ERP opérationnel (produits, stock, achats,
 ventes, finances) + copilote IA. Ce dépôt contient le **scaffold technique

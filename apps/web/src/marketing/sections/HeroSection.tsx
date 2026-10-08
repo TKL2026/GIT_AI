@@ -78,7 +78,7 @@ export function HeroSection() {
         </Stack>
 
         <div style={{ position: 'relative' }}>
-          <ProductMockup label="Aperçu — Dashboard Copilote IA Business" minHeight={320} src="/screenshots/dashboard.png" />
+          <ProductMockup label="Aperçu — Dashboard UGE" minHeight={320} src="/screenshots/dashboard.png" />
           <FloatingCard
             icon={IconPackage}
             color="error"

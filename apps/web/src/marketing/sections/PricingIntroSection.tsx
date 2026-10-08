@@ -6,7 +6,7 @@ export function PricingIntroSection() {
     <Container size="sm" py={80}>
       <Reveal>
         <Stack gap="md" align="center" ta="center">
-          <Title order={1} fz={{ base: 26, sm: 34 }}>
+          <Title order={2} fz={{ base: 26, sm: 34 }}>
             Une tarification pensée pour votre entreprise
           </Title>
           <Text c="dimmed" size="lg" maw={560}>

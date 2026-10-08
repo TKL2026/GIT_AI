@@ -4,13 +4,18 @@ import { LegalPageLayout } from './LegalPageLayout';
 
 export function PrivacyPolicyPage() {
   return (
-    <LegalPageLayout title="Politique de confidentialité" maxWidth={820}>
+    <LegalPageLayout
+      title="Politique de confidentialité"
+      maxWidth={820}
+      seoDescription="Politique de confidentialité et protection des données du logiciel UGE."
+      seoPath="/privacy"
+    >
       <Text size="sm" c="dimmed">
         Dernière mise à jour : à compléter à la publication.
       </Text>
 
       <Text>
-        Cette politique décrit les données traitées par Copilote IA Business (« le Service »),
+        Cette politique décrit les données traitées par UGE (« le Service »),
         édité par {orFallback(COMPANY_INFO.legalName)}, et la façon dont elles sont utilisées et
         protégées.
       </Text>

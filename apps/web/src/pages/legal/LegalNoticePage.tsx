@@ -4,7 +4,12 @@ import { LegalPageLayout } from './LegalPageLayout';
 
 export function LegalNoticePage() {
   return (
-    <LegalPageLayout title="Mentions légales" maxWidth={820}>
+    <LegalPageLayout
+      title="Mentions légales"
+      maxWidth={820}
+      seoDescription="Mentions légales du logiciel de gestion d'entreprise UGE."
+      seoPath="/legal"
+    >
       <Title order={4}>Éditeur du site</Title>
       <List spacing={4} size="sm">
         <List.Item>Raison sociale : {orFallback(COMPANY_INFO.legalName)}</List.Item>

@@ -14,7 +14,7 @@ export function TrustedBySection() {
               Ils nous font confiance
             </Title>
             <Text c="dimmed" size="lg">
-              Copilote IA Business est en phase de lancement et s'ouvre à ses premières
+              UGE est en phase de lancement et s'ouvre à ses premières
               entreprises. Les témoignages et résultats de nos premiers clients seront présentés
               ici au fur et à mesure.
             </Text>

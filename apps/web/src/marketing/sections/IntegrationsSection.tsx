@@ -12,7 +12,7 @@ export function IntegrationsSection() {
               Intégrations
             </Title>
             <Text c="dimmed" size="lg">
-              Les intégrations réellement disponibles aujourd'hui dans Copilote IA Business.
+              Les intégrations réellement disponibles aujourd'hui dans UGE.
               D'autres viendront s'ajouter au fil du temps.
             </Text>
           </Stack>

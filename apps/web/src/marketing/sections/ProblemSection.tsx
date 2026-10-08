@@ -53,7 +53,7 @@ export function ProblemSection() {
         </Reveal>
 
         <Text ta="center" size="lg" fw={600} c="emerald.7">
-          Copilote IA Business transforme ces problèmes en actions concrètes.
+          UGE transforme ces problèmes en actions concrètes.
         </Text>
       </Stack>
     </Container>

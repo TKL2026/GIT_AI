@@ -32,7 +32,7 @@ export function WhySection() {
         <Reveal>
           <Stack gap="md" maw={720}>
             <Title order={2} fz={{ base: 26, sm: 32 }}>
-              Pourquoi Copilote IA Business ?
+              Pourquoi UGE ?
             </Title>
             <Text size="lg" fw={500} c="emerald.7">
               « Un outil de gestion qui ne se contente pas d'enregistrer vos données : il vous aide

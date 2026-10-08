@@ -19,11 +19,8 @@ export function Logo({ size = 'md' }: LogoProps) {
       <ThemeIcon size={s.badge} radius="md" variant="filled" color="emerald">
         <IconBolt size={s.icon} stroke={2.5} />
       </ThemeIcon>
-      <Text size={s.text} fw={700} span>
-        Copilote{' '}
-        <Text span c="emerald.6" inherit fw={800}>
-          IA
-        </Text>
+      <Text size={s.text} fw={800} c="emerald.6" span>
+        UGE
       </Text>
     </Group>
   );

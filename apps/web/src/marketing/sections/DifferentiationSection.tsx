@@ -64,7 +64,7 @@ export function DifferentiationSection() {
                 <IconSparkles size={18} />
               </ThemeIcon>
               <Text fw={600} mb="sm">
-                Copilote IA Business
+                UGE
               </Text>
               <List spacing="xs" size="sm" listStyleType="none">
                 {COPILOT.map((item) => (
