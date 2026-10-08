@@ -1,35 +1,14 @@
-import {
-  Alert,
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Progress,
-  SimpleGrid,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Badge, Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconAlertCircle,
-  IconCheck,
-  IconClock,
-  IconFileSpreadsheet,
-  IconPackage,
-  IconPlus,
-  IconX,
-  type Icon,
-} from '@tabler/icons-react';
-import { useRef, useState } from 'react';
+import { IconClock, IconFileSpreadsheet, IconPackage, IconPlus, type Icon } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ImportWizard } from '../../import/ImportWizard';
+import { PRODUCT_IMPORT_FIELDS } from '../../import/importFieldDefinitions';
 import { ProductFormModal } from '../products/ProductFormModal';
-import { useProducts } from '../../hooks/useProducts';
-import { productsApi } from '../../api/products';
+import { useImportProducts, useProducts } from '../../hooks/useProducts';
 import { useUpdateOrganization } from '../../hooks/useOrganization';
-import { ApiError } from '../../lib/apiClient';
 import { OnboardingShell } from '../../onboarding/OnboardingShell';
-import { buildProductsCsvTemplate, parseProductsCsv, type ParsedProductRow, type ProductsCsvParseError } from '../../onboarding/parseProductsCsv';
 
 type Mode = 'choose' | 'import' | 'manual';
 
@@ -71,135 +50,17 @@ function OptionCard({
   );
 }
 
-function downloadCsvTemplate() {
-  const blob = new Blob([buildProductsCsvTemplate()], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'modele-produits.csv';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function ImportPanel() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [rows, setRows] = useState<ParsedProductRow[]>([]);
-  const [parseErrors, setParseErrors] = useState<ProductsCsvParseError[]>([]);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [importErrors, setImportErrors] = useState<string[]>([]);
-  const [importedCount, setImportedCount] = useState(0);
-
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    setImportedCount(0);
-    setImportErrors([]);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = parseProductsCsv(String(reader.result));
-      setRows(result.rows);
-      setParseErrors(result.errors);
-    };
-    reader.readAsText(file);
-  }
-
-  async function handleImport() {
-    setIsImporting(true);
-    setProgress(0);
-    const failures: string[] = [];
-    let done = 0;
-
-    for (const row of rows) {
-      try {
-        await productsApi.create({
-          name: row.name,
-          sku: row.sku,
-          purchasePrice: row.purchasePrice,
-          salePrice: row.salePrice,
-          initialStock: row.initialStock,
-        });
-      } catch (err) {
-        failures.push(`Ligne ${row.line} (${row.name}) : ${err instanceof ApiError ? err.message : 'échec.'}`);
-      }
-      done += 1;
-      setProgress(Math.round((done / rows.length) * 100));
-    }
-
-    setImportedCount(rows.length - failures.length);
-    setImportErrors(failures);
-    setIsImporting(false);
-    setRows([]);
-  }
+function ProductsImportPanel({ onFinished }: { onFinished: () => void }) {
+  const importProducts = useImportProducts();
 
   return (
-    <Stack gap="md">
-      <Text size="sm" c="dimmed">
-        Colonnes attendues : nom, sku, prix_achat, prix_vente, stock_initial (optionnelle).{' '}
-        <Anchor size="sm" onClick={downloadCsvTemplate}>
-          Télécharger le modèle
-        </Anchor>
-      </Text>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv"
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-      />
-      <Button variant="light" onClick={() => fileInputRef.current?.click()} leftSection={<IconFileSpreadsheet size={16} />}>
-        {fileName ?? 'Choisir un fichier CSV'}
-      </Button>
-
-      {parseErrors.length > 0 && (
-        <Alert color="red" icon={<IconAlertCircle size={16} />}>
-          <Stack gap={4}>
-            {parseErrors.slice(0, 5).map((e, i) => (
-              <Text size="sm" key={i}>
-                {e.line > 0 ? `Ligne ${e.line} : ` : ''}
-                {e.message}
-              </Text>
-            ))}
-            {parseErrors.length > 5 && <Text size="sm">…et {parseErrors.length - 5} autre(s) erreur(s).</Text>}
-          </Stack>
-        </Alert>
-      )}
-
-      {rows.length > 0 && (
-        <Alert color="emerald" icon={<IconCheck size={16} />}>
-          {rows.length} produit{rows.length > 1 ? 's' : ''} prêt{rows.length > 1 ? 's' : ''} à être importé{rows.length > 1 ? 's' : ''}.
-        </Alert>
-      )}
-
-      {isImporting && <Progress value={progress} animated />}
-
-      {importedCount > 0 && !isImporting && (
-        <Alert color="emerald" icon={<IconCheck size={16} />}>
-          {importedCount} produit{importedCount > 1 ? 's' : ''} importé{importedCount > 1 ? 's' : ''} avec succès.
-        </Alert>
-      )}
-
-      {importErrors.length > 0 && !isImporting && (
-        <Alert color="red" icon={<IconX size={16} />}>
-          <Stack gap={4}>
-            {importErrors.map((msg, i) => (
-              <Text size="sm" key={i}>
-                {msg}
-              </Text>
-            ))}
-          </Stack>
-        </Alert>
-      )}
-
-      {rows.length > 0 && (
-        <Button onClick={handleImport} loading={isImporting}>
-          Importer {rows.length} produit{rows.length > 1 ? 's' : ''}
-        </Button>
-      )}
-    </Stack>
+    <ImportWizard
+      fields={PRODUCT_IMPORT_FIELDS}
+      entityLabelSingular="produit"
+      entityLabelPlural="produits"
+      onImport={(rows) => importProducts.mutateAsync(rows)}
+      onFinished={onFinished}
+    />
   );
 }
 
@@ -253,7 +114,7 @@ export function ProductsStepPage() {
           />
         </SimpleGrid>
 
-        {mode === 'import' && <ImportPanel />}
+        {mode === 'import' && <ProductsImportPanel onFinished={() => {}} />}
 
         {mode === 'manual' && (
           <Group>
