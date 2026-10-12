@@ -22,6 +22,24 @@ function isBlankRow(row: string[]): boolean {
   return row.every((cell) => cell.trim() === '');
 }
 
+const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.xls'];
+
+/** Détecte un contenu binaire (PDF, image, exécutable...) lu comme texte —
+ * caractères de contrôle/nuls en proportion anormale pour un vrai CSV. Un
+ * fichier simplement renommé en .csv ne doit pas pour autant être traité
+ * comme un tableau de données. */
+function looksLikeBinaryContent(text: string): boolean {
+  const sample = text.slice(0, 2000);
+  if (sample.length === 0) return false;
+  let suspicious = 0;
+  for (const char of sample) {
+    const code = char.charCodeAt(0);
+    const isControlChar = code < 32 && char !== '\n' && char !== '\r' && char !== '\t';
+    if (code === 0 || isControlChar) suspicious += 1;
+  }
+  return suspicious / sample.length > 0.05;
+}
+
 /** FileReader plutôt que `file.text()`/`file.arrayBuffer()` : compatibilité
  * plus large (y compris anciens navigateurs) et évite une dépendance aux
  * méthodes Blob natives absentes de certains environnements de test. */
@@ -45,6 +63,11 @@ function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
 
 async function parseCsvFile(file: File): Promise<ParsedFile> {
   const text = await readFileAsText(file);
+  if (looksLikeBinaryContent(text)) {
+    throw new ImportFileError(
+      'Ce fichier ne semble pas être un fichier CSV valide (contenu binaire détecté).',
+    );
+  }
   const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true });
   const data = parsed.data.filter((row) => Array.isArray(row));
   if (data.length === 0) {
@@ -94,12 +117,20 @@ export async function parseImportFile(file: File): Promise<ParsedFile> {
   }
 
   const name = file.name.toLowerCase();
+  if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+    throw new ImportFileError(
+      'Format de fichier non supporté. Seuls les fichiers CSV (.csv) et Excel (.xlsx, .xls) sont acceptés.',
+    );
+  }
   const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls');
 
   let result: ParsedFile;
   try {
     result = isExcel ? await parseXlsxFile(file) : await parseCsvFile(file);
-  } catch {
+  } catch (err) {
+    // Un ImportFileError porte déjà un message précis (ex: contenu binaire
+    // détecté) — ne jamais l'écraser par le message générique ci-dessous.
+    if (err instanceof ImportFileError) throw err;
     throw new ImportFileError('Impossible de lire ce fichier. Vérifiez qu’il s’agit bien d’un fichier CSV ou Excel valide.');
   }
 
