@@ -675,7 +675,7 @@ export function DashboardPage() {
               <SimpleGrid cols={{ base: 1, lg: decliningProducts.length > 0 ? 2 : 1 }} mb="xl">
                 <Card>
                   <Group justify="space-between" mb="md">
-                    <Title order={5}>Produits les plus vendus</Title>
+                    <Title order={5}>Produits les plus rentables</Title>
                     <Text size="xs" c="dimmed">
                       {periodLabel}
                     </Text>
@@ -693,7 +693,7 @@ export function DashboardPage() {
                           <Group justify="space-between" py={4}>
                             <Text size="sm">{p.productName}</Text>
                             <Text size="sm" fw={600} c="emerald.7">
-                              {formatCurrency(p.estimatedMargin)}
+                              Marge estimée : {formatCurrency(p.estimatedMargin)}
                             </Text>
                           </Group>
                         </UnstyledButton>

@@ -25,6 +25,7 @@ import { DemoLoginPage } from './pages/DemoLoginPage';
 import { FinancePage } from './pages/finance/FinancePage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { LoginPage } from './pages/LoginPage';
+import { ReportsPage } from './pages/reports/ReportsPage';
 import { ActivityStepPage } from './pages/onboarding/ActivityStepPage';
 import { CompanyStepPage } from './pages/onboarding/CompanyStepPage';
 import { ProductsStepPage } from './pages/onboarding/ProductsStepPage';
@@ -131,6 +132,14 @@ export function App() {
             element={
               <RoleGuard roles={FINANCE_ROLES}>
                 <CopilotPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <RoleGuard roles={FINANCE_ROLES}>
+                <ReportsPage />
               </RoleGuard>
             }
           />

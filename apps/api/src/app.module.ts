@@ -24,6 +24,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { ProductsModule } from './modules/products/products.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
 import { PurchasingModule } from './modules/purchasing/purchasing.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { StockModule } from './modules/stock/stock.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
@@ -59,6 +60,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PurchasingModule,
     CopilotModule,
     WhatsAppModule,
+    ReportsModule,
     BillingModule,
     AdminModule,
   ],

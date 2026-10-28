@@ -66,6 +66,31 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   return envelope.data;
 }
 
+/** Pour les réponses binaires (ex: téléchargement PDF) — `request()` ne
+ * sait lire que l'enveloppe JSON `{ success, data }`. */
+async function requestBlob(path: string, retry = true): Promise<Blob> {
+  const accessToken = tokenStorage.getAccessToken();
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  });
+
+  if (response.status === 401 && retry && tokenStorage.getRefreshToken()) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      return requestBlob(path, false);
+    }
+    tokenStorage.clear();
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ message: response.statusText }));
+    throw new ApiError(response.status, body.message ?? 'Une erreur est survenue.', body.code);
+  }
+
+  return response.blob();
+}
+
 async function tryRefresh(): Promise<boolean> {
   const refreshToken = tokenStorage.getRefreshToken();
   if (!refreshToken) return false;
@@ -128,6 +153,8 @@ export const apiClient = {
     }),
 
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+
+  getBlob: (path: string) => requestBlob(path),
 };
 
 export function toQueryString(params: object): string {

@@ -6,6 +6,7 @@ import {
   IconBriefcase,
   IconChevronDown,
   IconCreditCard,
+  IconFileText,
   IconLayoutDashboard,
   IconLogout,
   IconMessageChatbot,
@@ -38,6 +39,13 @@ const NAV_ITEMS: {
   { to: '/purchases', label: 'Achats', icon: IconTruckDelivery },
   { to: '/finance', label: 'Finance', icon: IconReportMoney, roles: FINANCE_ROLES },
   { to: '/copilot', label: 'Copilote IA', icon: IconMessageChatbot, roles: FINANCE_ROLES },
+  {
+    to: '/reports',
+    label: 'Rapports',
+    icon: IconFileText,
+    roles: FINANCE_ROLES,
+    feature: FEATURES.REPORTS_STANDARD,
+  },
   { to: '/users', label: 'Utilisateurs', icon: IconUsers },
   { to: '/billing', label: 'Abonnement', icon: IconCreditCard, roles: BILLING_ROLES },
 ];
