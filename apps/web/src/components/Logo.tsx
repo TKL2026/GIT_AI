@@ -1,27 +1,42 @@
-import { Group, Text, ThemeIcon } from '@mantine/core';
-import { IconBolt } from '@tabler/icons-react';
+type LogoSize = 'sm' | 'md' | 'lg';
+type LogoVariant = 'horizontal' | 'symbol';
+type LogoBackground = 'light' | 'dark';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  /** Hauteur du logo. Par défaut 'md' (32px), comme l'ancien composant. */
+  size?: LogoSize;
+  /** 'horizontal' = logo complet (symbole + mot-symbole « UGE »), 'symbol' = symbole seul. */
+  variant?: LogoVariant;
+  /** Déclinaison à utiliser selon la couleur du fond derrière le logo. */
+  background?: LogoBackground;
 }
 
-const SIZES = {
-  sm: { badge: 26, icon: 16, text: 'md' as const },
-  md: { badge: 32, icon: 20, text: 'lg' as const },
-  lg: { badge: 44, icon: 28, text: 'xl' as const },
+const HEIGHTS: Record<LogoSize, number> = {
+  sm: 26,
+  md: 32,
+  lg: 44,
 };
 
-export function Logo({ size = 'md' }: LogoProps) {
-  const s = SIZES[size];
+const SOURCES: Record<LogoVariant, Record<LogoBackground, string>> = {
+  horizontal: {
+    light: '/brand/uge-logo-horizontal.svg',
+    dark: '/brand/uge-logo-horizontal-fond-sombre.svg',
+  },
+  symbol: {
+    light: '/brand/uge-symbole.svg',
+    dark: '/brand/uge-symbole-fond-sombre.svg',
+  },
+};
+
+export function Logo({ size = 'md', variant = 'horizontal', background = 'light' }: LogoProps) {
+  const height = HEIGHTS[size];
 
   return (
-    <Group gap="xs" wrap="nowrap">
-      <ThemeIcon size={s.badge} radius="md" variant="filled" color="emerald">
-        <IconBolt size={s.icon} stroke={2.5} />
-      </ThemeIcon>
-      <Text size={s.text} fw={800} c="emerald.6" span>
-        UGE
-      </Text>
-    </Group>
+    <img
+      src={SOURCES[variant][background]}
+      alt="UGE"
+      height={height}
+      style={{ display: 'block', height, width: 'auto' }}
+    />
   );
 }

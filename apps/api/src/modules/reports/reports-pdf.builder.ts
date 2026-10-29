@@ -1,8 +1,11 @@
+import { join } from "path";
 import PDFDocument from "pdfkit";
 import { ProductProfitabilityResponseDto } from "../finance/dto/product-profitability-response.dto";
 import { DailyReportResponseDto } from "./dto/daily-report-response.dto";
 import { MonthlyReportResponseDto } from "./dto/monthly-report-response.dto";
 import { StockAlertItemDto } from "./dto/stock-alert-item.dto";
+
+const UGE_SYMBOL_PATH = join(__dirname, "assets", "uge-symbole.png");
 
 /**
  * N'utilise PAS `toLocaleString("fr-FR")` : son séparateur de milliers est
@@ -46,6 +49,8 @@ function renderPdf(content: ReportPdfContent): Promise<Buffer> {
     doc.on("error", reject);
   });
 
+  doc.image(UGE_SYMBOL_PATH, { height: 22 });
+  doc.moveDown(0.3);
   doc.fontSize(18).font("Helvetica-Bold").text("UGE", { continued: true });
   doc.font("Helvetica").text(` — ${content.title}`);
   doc.fontSize(11).fillColor("#555555").text(content.organizationName);

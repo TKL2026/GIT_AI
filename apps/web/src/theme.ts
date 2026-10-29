@@ -22,6 +22,37 @@ const emerald: MantineColorsTuple = [
   '#064e3b',
 ];
 
+// Palette de marque UGE (charte « Pivot », index 6 = Émeraude UGE #0B7A55).
+const uge: MantineColorsTuple = [
+  '#EFF8F5',
+  '#DAF1E9',
+  '#B7E6D6',
+  '#88D7BD',
+  '#4DCBA1',
+  '#1FAD7E',
+  '#0B7A55',
+  '#096244',
+  '#074B34',
+  '#053625',
+];
+
+// Vert "succès" volontairement distinct de la marque (charte : "le vert de
+// marque ne doit pas servir de couleur succès") — reprend le vert natif de
+// Mantine, déjà utilisé tel quel (color="green") dans la quasi-totalité des
+// notifications de succès existantes.
+const success: MantineColorsTuple = [
+  '#ebfbee',
+  '#d3f9d8',
+  '#b2f2bb',
+  '#8ce99a',
+  '#69db7c',
+  '#51cf66',
+  '#40c057',
+  '#37b24d',
+  '#2f9e44',
+  '#2b8a3e',
+];
+
 const amber: MantineColorsTuple = [
   '#fffbeb',
   '#fef3c7',
@@ -62,14 +93,19 @@ const blue: MantineColorsTuple = [
 ];
 
 export const theme = createTheme({
-  primaryColor: 'emerald',
+  primaryColor: 'uge',
   colors: {
+    uge,
+    // Conservée pour les usages ponctuels déjà en place dans l'app
+    // (accents non liés au bouton/état principal) — hors périmètre de ce
+    // changement de couleur principale, qui ne porte que sur `primaryColor`.
     emerald,
     amber,
-    // Alias couleurs sémantiques : "success" partage la teinte de marque
-    // (le vert émeraude joue déjà ce rôle visuellement), "warning" reprend
-    // l'ambre défini pour l'accent — pas de palette redondante à maintenir.
-    success: emerald,
+    // Alias couleurs sémantiques, chacun sur une palette distincte de la
+    // marque : "warning" reprend l'ambre défini pour l'accent, "success"
+    // est le vert natif Mantine (voir plus haut) pour ne jamais se
+    // confondre avec le vert de marque UGE.
+    success,
     warning: amber,
     error: red,
     info: blue,
