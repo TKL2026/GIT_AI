@@ -381,7 +381,7 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Bonjour, ${user?.firstName} 👋`}
+        title={`Bonjour, ${user?.firstName}`}
         description="Voici un aperçu de votre activité."
         action={
           <Group gap="xs" wrap="wrap" justify="flex-end">
@@ -420,7 +420,7 @@ export function DashboardPage() {
           <Group justify="space-between" align="flex-start" mb="xs">
             <Group gap="xs">
               <IconSparkles size={18} color="var(--mantine-color-emerald-6)" />
-              <Title order={5}>Bienvenue dans votre espace 👋</Title>
+              <Title order={5}>Bienvenue dans votre espace</Title>
             </Group>
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={dismissWelcomeBanner} aria-label="Masquer">
               <IconX size={16} />

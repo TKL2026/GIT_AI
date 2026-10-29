@@ -47,7 +47,7 @@ export function ReviewStepPage() {
     <OnboardingShell
       currentStepKey="review"
       icon={IconShieldCheck}
-      title="Votre espace est presque prêt 🎉"
+      title="Votre espace est presque prêt"
       subtitle="Vérifiez vos informations avant de finaliser."
     >
       {isLoading || !organization ? (
