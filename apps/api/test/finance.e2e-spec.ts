@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 describe('Finance (e2e)', () => {
   let app: INestApplication;
@@ -207,11 +208,7 @@ describe('Finance (e2e)', () => {
   });
 
   it('refuse l’accès aux données financières pour un rôle CASHIER', async () => {
-    const loginResponse = await request(app.getHttpServer()).post('/api/auth/login').send({
-      email: cashierEmail,
-      password: 'Password123!',
-    });
-    const cashierToken = loginResponse.body.data.accessToken;
+    const cashierToken = await loginAndGetAccessToken(app, cashierEmail, 'Password123!');
 
     await request(app.getHttpServer())
       .get('/api/finance/summary')

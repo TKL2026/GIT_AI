@@ -1,12 +1,18 @@
-import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, HttpException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { createHmac } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+
+const TEST_PEPPER = 'test-pepper-not-for-production';
+function hashCode(code: string): string {
+  return createHmac('sha256', TEST_PEPPER).update(code).digest('hex');
+}
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -18,6 +24,13 @@ describe('AuthService', () => {
     plan: { findUnique: jest.Mock };
     passwordResetToken: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
     emailVerificationToken: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    loginVerification: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      findUniqueOrThrow: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+    };
   };
   let subscriptionCreate: jest.Mock;
   let usersService: { findByEmail: jest.Mock; findById: jest.Mock };
@@ -27,6 +40,7 @@ describe('AuthService', () => {
     sendPasswordResetEmail: jest.Mock;
     sendInviteEmail: jest.Mock;
     sendVerificationEmail: jest.Mock;
+    sendLoginVerificationCode: jest.Mock;
   };
 
   const fakeUser = {
@@ -74,6 +88,13 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
       },
+      loginVerification: {
+        create: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
     };
 
     usersService = {
@@ -94,6 +115,8 @@ describe('AuthService', () => {
           JWT_ACCESS_EXPIRES_IN: '15m',
           JWT_REFRESH_EXPIRES_IN: '7d',
           CORS_ORIGIN: 'http://localhost:5173',
+          LOGIN_CODE_PEPPER: 'test-pepper-not-for-production',
+          NODE_ENV: 'test',
         };
         return values[key];
       }),
@@ -103,6 +126,7 @@ describe('AuthService', () => {
       sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
       sendInviteEmail: jest.fn().mockResolvedValue(undefined),
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      sendLoginVerificationCode: jest.fn().mockResolvedValue(undefined),
     };
 
     authService = new AuthService(
@@ -279,7 +303,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('retourne des tokens si les identifiants sont corrects', async () => {
+    it("retourne un challenge (pas de tokens) si les identifiants sont corrects", async () => {
       usersService.findByEmail.mockResolvedValue(fakeUser);
 
       const result = await authService.login({
@@ -287,24 +311,274 @@ describe('AuthService', () => {
         password: 'Password123!',
       });
 
-      expect(result.user).toEqual(fakeUser);
-      expect(result.tokens.accessToken).toBe('signed-token');
+      expect(result.challengeToken).toEqual(expect.any(String));
+      expect(result.expiresInSeconds).toBe(600);
+      expect(result.resendAvailableInSeconds).toBe(60);
+      expect(result).not.toHaveProperty('accessToken');
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(mailService.sendLoginVerificationCode).toHaveBeenCalledWith(
+        fakeUser.email,
+        expect.stringMatching(/^\d{6}$/),
+      );
     });
 
-    it('lève une UnauthorizedException si le mot de passe est incorrect', async () => {
+    it('invalide toute vérification de connexion encore active pour cet utilisateur avant d\'en créer une nouvelle', async () => {
+      usersService.findByEmail.mockResolvedValue(fakeUser);
+
+      await authService.login({ email: 'owner@demo.com', password: 'Password123!' });
+
+      expect(prisma.loginVerification.updateMany).toHaveBeenCalledWith({
+        where: { userId: fakeUser.id, usedAt: null },
+        data: { usedAt: expect.any(Date) },
+      });
+    });
+
+    it('lève une UnauthorizedException si le mot de passe est incorrect (comportement inchangé)', async () => {
       usersService.findByEmail.mockResolvedValue(fakeUser);
 
       await expect(
         authService.login({ email: 'owner@demo.com', password: 'wrong-password' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.loginVerification.create).not.toHaveBeenCalled();
     });
 
-    it("lève une UnauthorizedException si l'utilisateur n'existe pas", async () => {
+    it("lève une UnauthorizedException si l'utilisateur n'existe pas (comportement inchangé)", async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
       await expect(
         authService.login({ email: 'unknown@demo.com', password: 'Password123!' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it("un échec du service de messagerie (ex: fournisseur indisponible) ne doit ni faire planter login() ni finaliser une session : le challenge est créé normalement, mais sans aucun token émis", async () => {
+      usersService.findByEmail.mockResolvedValue(fakeUser);
+      mailService.sendLoginVerificationCode.mockRejectedValueOnce(
+        new Error('Service de messagerie indisponible'),
+      );
+
+      // MailService#send() avale déjà ses propres erreurs réseau en
+      // production (voir mail.service.ts) ; ce test vérifie en plus que
+      // AuthService lui-même ne dépend d'aucune façon du succès de l'envoi
+      // pour construire le challenge — même si l'appel rejette malgré tout
+      // (bug futur dans MailService, timeout non catché...), aucune session
+      // ne doit jamais être émise à la place.
+      await expect(
+        authService.login({ email: 'owner@demo.com', password: 'Password123!' }),
+      ).rejects.toThrow('Service de messagerie indisponible');
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(prisma.loginVerification.create).toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyLoginCode', () => {
+    const now = new Date();
+    function freshVerification(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'verif-1',
+        userId: fakeUser.id,
+        challengeToken: 'challenge-1',
+        codeHash: hashCode('123456'),
+        attempts: 0,
+        createdAt: now,
+        lastSentAt: now,
+        expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
+        usedAt: null,
+        ...overrides,
+      };
+    }
+
+    it('émet une vraie session si le code est correct', async () => {
+      const verification = freshVerification();
+      prisma.loginVerification.findUnique.mockResolvedValue(verification);
+      prisma.loginVerification.updateMany.mockResolvedValue({ count: 1 });
+      prisma.loginVerification.findUniqueOrThrow.mockResolvedValue({ ...verification, attempts: 1 });
+      usersService.findById.mockResolvedValue(fakeUser);
+
+      const result = await authService.verifyLoginCode({
+        challengeToken: 'challenge-1',
+        code: '123456',
+      });
+
+      expect(result.user).toEqual(fakeUser);
+      expect(result.tokens.accessToken).toBe('signed-token');
+      expect(prisma.refreshToken.create).toHaveBeenCalled();
+      // La consommation finale utilise bien la garde usedAt:null (anti-double-usage).
+      expect(prisma.loginVerification.updateMany).toHaveBeenLastCalledWith({
+        where: { id: verification.id, usedAt: null },
+        data: { usedAt: expect.any(Date) },
+      });
+    });
+
+    it('LOGIN_CHALLENGE_INVALID si le challengeToken est introuvable', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(null);
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'inconnu', code: '123456' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CHALLENGE_INVALID' }),
+      });
+    });
+
+    it('LOGIN_CHALLENGE_INVALID si la vérification a déjà été utilisée', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(
+        freshVerification({ usedAt: new Date() }),
+      );
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'challenge-1', code: '123456' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CHALLENGE_INVALID' }),
+      });
+    });
+
+    it('LOGIN_CODE_EXPIRED si le code a expiré', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(
+        freshVerification({ expiresAt: new Date(Date.now() - 1000) }),
+      );
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'challenge-1', code: '123456' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CODE_EXPIRED' }),
+      });
+      expect(prisma.loginVerification.update).toHaveBeenCalledWith({
+        where: { id: 'verif-1' },
+        data: { usedAt: expect.any(Date) },
+      });
+    });
+
+    it('LOGIN_CODE_MAX_ATTEMPTS si la réservation atomique de tentative échoue (limite déjà atteinte)', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(freshVerification({ attempts: 5 }));
+      prisma.loginVerification.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'challenge-1', code: '123456' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CODE_MAX_ATTEMPTS' }),
+      });
+      // La garde atomique porte bien sur usedAt:null ET attempts < MAX.
+      expect(prisma.loginVerification.updateMany).toHaveBeenCalledWith({
+        where: { id: 'verif-1', usedAt: null, attempts: { lt: 5 } },
+        data: { attempts: { increment: 1 } },
+      });
+    });
+
+    it('LOGIN_CODE_INVALID avec le nombre de tentatives restantes si le code est incorrect', async () => {
+      const verification = freshVerification();
+      prisma.loginVerification.findUnique.mockResolvedValue(verification);
+      prisma.loginVerification.updateMany.mockResolvedValue({ count: 1 });
+      prisma.loginVerification.findUniqueOrThrow.mockResolvedValue({ ...verification, attempts: 2 });
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'challenge-1', code: '000000' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'LOGIN_CODE_INVALID',
+          message: expect.stringContaining('3'),
+        }),
+      });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('LOGIN_CHALLENGE_INVALID si la consommation finale perd la course (déjà consommé par une autre requête concurrente)', async () => {
+      const verification = freshVerification();
+      prisma.loginVerification.findUnique.mockResolvedValue(verification);
+      // 1er updateMany (réservation de tentative) réussit, 2e (consommation) échoue.
+      prisma.loginVerification.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      prisma.loginVerification.findUniqueOrThrow.mockResolvedValue({ ...verification, attempts: 1 });
+
+      await expect(
+        authService.verifyLoginCode({ challengeToken: 'challenge-1', code: '123456' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CHALLENGE_INVALID' }),
+      });
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resendLoginCode', () => {
+    const now = new Date();
+    function activeVerification(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'verif-1',
+        userId: fakeUser.id,
+        challengeToken: 'challenge-1',
+        codeHash: hashCode('123456'),
+        attempts: 2,
+        createdAt: now,
+        lastSentAt: new Date(now.getTime() - 61 * 1000),
+        expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
+        usedAt: null,
+        ...overrides,
+      };
+    }
+
+    it('régénère un code et réinitialise le compteur de tentatives après le délai de cooldown', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(activeVerification());
+      usersService.findById.mockResolvedValue(fakeUser);
+
+      const result = await authService.resendLoginCode({ challengeToken: 'challenge-1' });
+
+      expect(result.challengeToken).toBe('challenge-1');
+      expect(prisma.loginVerification.update).toHaveBeenCalledWith({
+        where: { id: 'verif-1' },
+        data: {
+          codeHash: expect.any(String),
+          attempts: 0,
+          lastSentAt: expect.any(Date),
+          expiresAt: expect.any(Date),
+        },
+      });
+      expect(mailService.sendLoginVerificationCode).toHaveBeenCalledWith(
+        fakeUser.email,
+        expect.stringMatching(/^\d{6}$/),
+      );
+    });
+
+    it('refuse (LOGIN_CODE_RESEND_TOO_SOON, 429) un renvoi trop rapproché', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(
+        activeVerification({ lastSentAt: new Date() }),
+      );
+
+      const error: unknown = await authService
+        .resendLoginCode({ challengeToken: 'challenge-1' })
+        .catch((e) => e);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(429);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'LOGIN_CODE_RESEND_TOO_SOON',
+      });
+      expect(prisma.loginVerification.update).not.toHaveBeenCalled();
+    });
+
+    it('LOGIN_CHALLENGE_INVALID si le challengeToken est introuvable/déjà utilisé/expiré', async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(null);
+
+      await expect(
+        authService.resendLoginCode({ challengeToken: 'inconnu' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CHALLENGE_INVALID' }),
+      });
+    });
+
+    it("LOGIN_CHALLENGE_INVALID au-delà du plafond de vie absolu (30 min), même avec un cooldown respecté", async () => {
+      prisma.loginVerification.findUnique.mockResolvedValue(
+        activeVerification({ createdAt: new Date(Date.now() - 31 * 60 * 1000) }),
+      );
+
+      await expect(
+        authService.resendLoginCode({ challengeToken: 'challenge-1' }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'LOGIN_CHALLENGE_INVALID' }),
+      });
+      // La ligne est tuée (usedAt) pour ne pas rester indéfiniment renvoyable.
+      expect(prisma.loginVerification.update).toHaveBeenCalledWith({
+        where: { id: 'verif-1' },
+        data: { usedAt: expect.any(Date) },
+      });
     });
   });
 

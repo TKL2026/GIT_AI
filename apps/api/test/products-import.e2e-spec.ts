@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 describe('Products import (e2e)', () => {
   let app: NestExpressApplication;
@@ -17,6 +18,11 @@ describe('Products import (e2e)', () => {
   const email = `products-import-e2e-${Date.now()}@demo.com`;
   const cashierEmail = `products-import-cashier-e2e-${Date.now()}@demo.com`;
   const otherOrgEmail = `products-import-other-org-e2e-${Date.now()}@demo.com`;
+
+  // Le flux de connexion à 2 étapes (voir login-with-code.ts) ajoute un
+  // appel réseau réel vers Resend par connexion effectuée dans ce fichier —
+  // dépasse le timeout par défaut de 5s de Jest pour le hook beforeAll.
+  jest.setTimeout(30000);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -145,11 +151,7 @@ describe('Products import (e2e)', () => {
   });
 
   it('refuse l’import pour un rôle CASHIER (RBAC)', async () => {
-    const loginResponse = await request(app.getHttpServer()).post('/api/auth/login').send({
-      email: cashierEmail,
-      password: 'Password123!',
-    });
-    const cashierToken = loginResponse.body.data.accessToken;
+    const cashierToken = await loginAndGetAccessToken(app, cashierEmail, 'Password123!');
 
     await importRequest(cashierToken)
       .send({ rows: [{ line: 2, name: 'X', sku: `X-${Date.now()}`, purchasePrice: '1000', salePrice: '1500' }] })

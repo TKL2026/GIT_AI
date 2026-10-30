@@ -30,6 +30,8 @@ function mockUser(role: Role) {
     isAuthenticated: true,
     isLoading: false,
     login: vi.fn(),
+    verifyLoginCode: vi.fn(),
+    resendLoginCode: vi.fn(),
     loginAsDemo: vi.fn(),
     register: vi.fn(),
     applyAuthResponse: vi.fn(),

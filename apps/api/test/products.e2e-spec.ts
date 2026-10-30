@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 describe('Products (e2e)', () => {
   let app: INestApplication;
@@ -116,11 +117,7 @@ describe('Products (e2e)', () => {
   it('refuse la modification et l’archivage pour un rôle CASHIER', async () => {
     const product = await createProduct('Allumettes');
 
-    const loginResponse = await request(app.getHttpServer()).post('/api/auth/login').send({
-      email: cashierEmail,
-      password: 'Password123!',
-    });
-    const cashierToken = loginResponse.body.data.accessToken;
+    const cashierToken = await loginAndGetAccessToken(app, cashierEmail, 'Password123!');
 
     await request(app.getHttpServer())
       .patch(`/api/products/${product.id}`)

@@ -151,6 +151,7 @@ model User {
   refreshTokens         RefreshToken[]
   passwordResetTokens   PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  loginVerifications    LoginVerification[]
   stockMovements        StockMovement[]
   sales                 Sale[]
   purchaseOrders        PurchaseOrder[]
@@ -158,6 +159,28 @@ model User {
 
   @@index([organizationId])
   @@map("users")
+}
+
+/// Code de vérification à 6 chiffres envoyé par email à la connexion (2FA),
+/// distinct de EmailVerificationToken (qui vérifie que l'adresse email est
+/// atteignable, indépendamment de toute connexion). Le code n'est jamais
+/// stocké en clair : codeHash = HMAC-SHA256(code, LOGIN_CODE_PEPPER) — voir
+/// AuthService. Une seule ligne active par utilisateur à la fois.
+model LoginVerification {
+  id             String    @id @default(uuid())
+  userId         String
+  challengeToken String    @unique
+  codeHash       String
+  attempts       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  lastSentAt     DateTime  @default(now())
+  expiresAt      DateTime
+  usedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("login_verifications")
 }
 
 model EmailVerificationToken {

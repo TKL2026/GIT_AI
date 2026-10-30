@@ -1,5 +1,7 @@
 import {
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -9,15 +11,24 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Plan, Role, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { createHash, randomUUID } from "crypto";
+import {
+  createHash,
+  createHmac,
+  randomInt,
+  randomUUID,
+  timingSafeEqual,
+} from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { UsersService } from "../users/users.service";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { LoginChallengeResponseDto } from "./dto/login-challenge-response.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { ResendLoginCodeDto } from "./dto/resend-login-code.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
+import { VerifyLoginCodeDto } from "./dto/verify-login-code.dto";
 
 export interface AuthTokens {
   accessToken: string;
@@ -34,6 +45,18 @@ interface AccessTokenPayload {
 
 const RESET_TOKEN_EXPIRY_MINUTES = 60;
 const VERIFICATION_TOKEN_EXPIRY_HOURS = 24;
+
+// Vérification par code e-mail à la connexion (2FA) — voir login(),
+// verifyLoginCode(), resendLoginCode(). Indépendant de emailVerifiedAt /
+// EmailVerificationToken (qui vérifie juste que l'adresse est atteignable,
+// jamais exigé pour se connecter).
+const LOGIN_CODE_EXPIRY_MINUTES = 10;
+const LOGIN_CODE_MAX_ATTEMPTS = 5;
+const LOGIN_CODE_RESEND_COOLDOWN_SECONDS = 60;
+// Plafond absolu de vie d'une tentative de connexion, même avec des renvois
+// répétés espacés de plus de LOGIN_CODE_RESEND_COOLDOWN_SECONDS — empêche
+// de maintenir indéfiniment la même session de vérification active.
+const LOGIN_CHALLENGE_MAX_LIFETIME_MINUTES = 30;
 
 @Injectable()
 export class AuthService {
@@ -123,7 +146,14 @@ export class AuthService {
     return { user, tokens };
   }
 
-  async login(dto: LoginDto): Promise<{ user: User; tokens: AuthTokens }> {
+  /**
+   * Étape 1/2 de la connexion : vérifie email + mot de passe comme avant,
+   * mais n'émet plus de session réelle. Si les identifiants sont corrects,
+   * génère un code à 6 chiffres envoyé par email et renvoie uniquement une
+   * référence à cette demande de vérification — voir verifyLoginCode()
+   * pour l'étape 2, qui seule peut émettre de vrais tokens.
+   */
+  async login(dto: LoginDto): Promise<LoginChallengeResponseDto> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException("Identifiants invalides.");
@@ -137,8 +167,260 @@ export class AuthService {
       throw new UnauthorizedException("Identifiants invalides.");
     }
 
+    return this.startLoginVerification(user);
+  }
+
+  /**
+   * Étape 2/2 : vérifie le code à 6 chiffres reçu par email et, seulement
+   * s'il est correct, émet une vraie session via issueTokens() (inchangé).
+   * La réservation de tentative est atomique (updateMany avec garde sur
+   * attempts/usedAt) pour qu'aucune combinaison de requêtes concurrentes ne
+   * puisse jamais tester plus de LOGIN_CODE_MAX_ATTEMPTS codes.
+   */
+  async verifyLoginCode(
+    dto: VerifyLoginCodeDto,
+  ): Promise<{ user: User; tokens: AuthTokens }> {
+    const verification = await this.prisma.loginVerification.findUnique({
+      where: { challengeToken: dto.challengeToken },
+    });
+
+    if (!verification || verification.usedAt) {
+      throw new UnauthorizedException({
+        code: "LOGIN_CHALLENGE_INVALID",
+        message: "Session de vérification invalide. Reconnectez-vous.",
+      });
+    }
+
+    if (verification.expiresAt < new Date()) {
+      await this.prisma.loginVerification.update({
+        where: { id: verification.id },
+        data: { usedAt: new Date() },
+      });
+      throw new UnauthorizedException({
+        code: "LOGIN_CODE_EXPIRED",
+        message: "Ce code a expiré. Demandez-en un nouveau.",
+      });
+    }
+
+    // Réserve atomiquement une tentative AVANT de comparer le code : si
+    // plusieurs requêtes arrivent en même temps sur un compteur déjà à la
+    // limite, une seule (au plus) peut gagner cette mise à jour — un simple
+    // "if (attempts >= MAX)" lu avant d'incrémenter séparément laisserait
+    // passer plusieurs essais concurrents au-delà de la limite prévue.
+    const reserved = await this.prisma.loginVerification.updateMany({
+      where: {
+        id: verification.id,
+        usedAt: null,
+        attempts: { lt: LOGIN_CODE_MAX_ATTEMPTS },
+      },
+      data: { attempts: { increment: 1 } },
+    });
+    if (reserved.count !== 1) {
+      await this.prisma.loginVerification.update({
+        where: { id: verification.id },
+        data: { usedAt: new Date() },
+      });
+      throw new UnauthorizedException({
+        code: "LOGIN_CODE_MAX_ATTEMPTS",
+        message: "Trop de tentatives. Reconnectez-vous pour recevoir un nouveau code.",
+      });
+    }
+
+    const current = await this.prisma.loginVerification.findUniqueOrThrow({
+      where: { id: verification.id },
+    });
+    const codeMatches = this.verifyLoginCodeHash(dto.code, current.codeHash);
+
+    if (!codeMatches) {
+      const attemptsRemaining = Math.max(
+        0,
+        LOGIN_CODE_MAX_ATTEMPTS - current.attempts,
+      );
+      // attemptsRemaining est inclus dans le message (pas comme champ JSON
+      // séparé) : le filtre d'exception global ne propage que `message` et
+      // `code` au client, pas de champs additionnels arbitraires — éviter
+      // de toucher ce filtre partagé par toute l'application pour un seul
+      // endpoint reste le choix le plus sûr ici.
+      throw new UnauthorizedException({
+        code: "LOGIN_CODE_INVALID",
+        message: `Code incorrect. Il vous reste ${attemptsRemaining} tentative(s).`,
+      });
+    }
+
+    const consumed = await this.prisma.loginVerification.updateMany({
+      where: { id: verification.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (consumed.count !== 1) {
+      // Une autre requête concurrente a déjà consommé ce code avec succès.
+      throw new UnauthorizedException({
+        code: "LOGIN_CHALLENGE_INVALID",
+        message: "Ce code a déjà été utilisé.",
+      });
+    }
+
+    const user = await this.usersService.findById(verification.userId);
+    if (!user) {
+      throw new UnauthorizedException("Utilisateur introuvable.");
+    }
+
     const tokens = await this.issueTokens(user);
     return { user, tokens };
+  }
+
+  /**
+   * Renvoie un nouveau code sur le même challengeToken (l'ancien code est
+   * invalidé par le remplacement de codeHash/attempts). Refuse si la
+   * session de vérification est morte (expirée/consommée) ou dépasse le
+   * plafond de vie absolu — l'utilisateur doit alors recommencer une
+   * connexion complète plutôt que de pouvoir maintenir indéfiniment la même
+   * session active à coups de renvois.
+   */
+  async resendLoginCode(
+    dto: ResendLoginCodeDto,
+  ): Promise<LoginChallengeResponseDto> {
+    const verification = await this.prisma.loginVerification.findUnique({
+      where: { challengeToken: dto.challengeToken },
+    });
+
+    if (
+      !verification ||
+      verification.usedAt ||
+      verification.expiresAt < new Date()
+    ) {
+      throw new UnauthorizedException({
+        code: "LOGIN_CHALLENGE_INVALID",
+        message: "Session de vérification invalide. Reconnectez-vous.",
+      });
+    }
+
+    const ageMs = Date.now() - verification.createdAt.getTime();
+    if (ageMs > LOGIN_CHALLENGE_MAX_LIFETIME_MINUTES * 60 * 1000) {
+      await this.prisma.loginVerification.update({
+        where: { id: verification.id },
+        data: { usedAt: new Date() },
+      });
+      throw new UnauthorizedException({
+        code: "LOGIN_CHALLENGE_INVALID",
+        message: "Cette tentative de connexion a expiré. Reconnectez-vous.",
+      });
+    }
+
+    const sinceLastSentMs = Date.now() - verification.lastSentAt.getTime();
+    const cooldownMs = LOGIN_CODE_RESEND_COOLDOWN_SECONDS * 1000;
+    if (sinceLastSentMs < cooldownMs) {
+      const retryAfterSeconds = Math.ceil((cooldownMs - sinceLastSentMs) / 1000);
+      throw new HttpException(
+        {
+          code: "LOGIN_CODE_RESEND_TOO_SOON",
+          message: `Veuillez patienter encore ${retryAfterSeconds} seconde(s) avant de redemander un code.`,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const user = await this.usersService.findById(verification.userId);
+    if (!user) {
+      throw new UnauthorizedException({
+        code: "LOGIN_CHALLENGE_INVALID",
+        message: "Session de vérification invalide. Reconnectez-vous.",
+      });
+    }
+
+    const { code } = await this.regenerateLoginCode(verification.id, user);
+
+    this.logLoginCodeInDevelopment(user.email, code);
+
+    return {
+      challengeToken: verification.challengeToken,
+      expiresInSeconds: LOGIN_CODE_EXPIRY_MINUTES * 60,
+      resendAvailableInSeconds: LOGIN_CODE_RESEND_COOLDOWN_SECONDS,
+    };
+  }
+
+  /** Crée une nouvelle demande de vérification pour un utilisateur dont le
+   * mot de passe vient d'être validé — invalide toute session en cours pour
+   * ne jamais laisser deux codes actifs simultanés pour le même compte. */
+  private async startLoginVerification(
+    user: User,
+  ): Promise<LoginChallengeResponseDto> {
+    await this.prisma.loginVerification.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const challengeToken = randomUUID();
+    const code = this.generateLoginCode();
+    const now = new Date();
+
+    await this.prisma.loginVerification.create({
+      data: {
+        userId: user.id,
+        challengeToken,
+        codeHash: this.hashLoginCode(code),
+        expiresAt: new Date(now.getTime() + LOGIN_CODE_EXPIRY_MINUTES * 60 * 1000),
+        lastSentAt: now,
+      },
+    });
+
+    await this.mailService.sendLoginVerificationCode(user.email, code);
+    this.logLoginCodeInDevelopment(user.email, code);
+
+    return {
+      challengeToken,
+      expiresInSeconds: LOGIN_CODE_EXPIRY_MINUTES * 60,
+      resendAvailableInSeconds: LOGIN_CODE_RESEND_COOLDOWN_SECONDS,
+    };
+  }
+
+  /** Régénère code + hash sur une ligne existante (renvoi) : repart avec un
+   * compteur de tentatives à zéro, un nouveau code mérite un nouveau budget. */
+  private async regenerateLoginCode(
+    verificationId: string,
+    user: User,
+  ): Promise<{ code: string }> {
+    const code = this.generateLoginCode();
+    const now = new Date();
+
+    await this.prisma.loginVerification.update({
+      where: { id: verificationId },
+      data: {
+        codeHash: this.hashLoginCode(code),
+        attempts: 0,
+        lastSentAt: now,
+        expiresAt: new Date(now.getTime() + LOGIN_CODE_EXPIRY_MINUTES * 60 * 1000),
+      },
+    });
+
+    await this.mailService.sendLoginVerificationCode(user.email, code);
+    return { code };
+  }
+
+  private generateLoginCode(): string {
+    return String(randomInt(0, 1_000_000)).padStart(6, "0");
+  }
+
+  private hashLoginCode(code: string): string {
+    const pepper = this.configService.get<string>("LOGIN_CODE_PEPPER")!;
+    return createHmac("sha256", pepper).update(code).digest("hex");
+  }
+
+  private verifyLoginCodeHash(code: string, expectedHash: string): boolean {
+    const actualHash = Buffer.from(this.hashLoginCode(code), "hex");
+    const expected = Buffer.from(expectedHash, "hex");
+    if (actualHash.length !== expected.length) {
+      return false;
+    }
+    return timingSafeEqual(actualHash, expected);
+  }
+
+  /** Ne journalise jamais le code réel en production — commodité de dev
+   * uniquement (comme les liens reset/verify déjà journalisés ailleurs dans
+   * ce fichier, mais ceux-ci sans restriction d'environnement). */
+  private logLoginCodeInDevelopment(email: string, code: string): void {
+    if (this.configService.get<string>("NODE_ENV") !== "production") {
+      this.logger.log(`Code de connexion pour ${email} : ${code}`);
+    }
   }
 
   /**

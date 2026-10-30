@@ -9,11 +9,14 @@ import { UserResponseDto } from '../users/dto/user-response.dto';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginChallengeResponseDto } from './dto/login-challenge-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResendLoginCodeDto } from './dto/resend-login-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyLoginCodeDto } from './dto/verify-login-code.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -34,10 +37,31 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    type: LoginChallengeResponseDto,
+    description: "Identifiants corrects : un code a été envoyé par email, aucune session n'est encore ouverte.",
+  })
+  async login(@Body() dto: LoginDto): Promise<LoginChallengeResponseDto> {
+    return this.authService.login(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('verify-login-code')
+  @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: AuthResponseDto })
-  async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
-    const { user, tokens } = await this.authService.login(dto);
+  async verifyLoginCode(@Body() dto: VerifyLoginCodeDto): Promise<AuthResponseDto> {
+    const { user, tokens } = await this.authService.verifyLoginCode(dto);
     return { ...tokens, user: UserResponseDto.fromEntity(user) };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('resend-login-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: LoginChallengeResponseDto })
+  async resendLoginCode(@Body() dto: ResendLoginCodeDto): Promise<LoginChallengeResponseDto> {
+    return this.authService.resendLoginCode(dto);
   }
 
   @Public()

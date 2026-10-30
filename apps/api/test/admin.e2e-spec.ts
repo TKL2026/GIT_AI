@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 describe('Admin back-office (e2e)', () => {
   let app: INestApplication;
@@ -23,6 +24,12 @@ describe('Admin back-office (e2e)', () => {
   const suffix = Date.now();
   const platformAdminEmail = `admin-e2e-platform-${suffix}@uge.pro`;
   const platformAdminPassword = 'AdminPassword123!';
+
+  // Le flux de connexion à 2 étapes (voir login-with-code.ts) ajoute un
+  // appel réseau réel vers Resend par connexion effectuée dans ce fichier
+  // (plusieurs rôles tenant + org B) — dépasse le timeout par défaut de 5s
+  // de Jest pour le hook beforeAll, qui enchaîne plusieurs connexions.
+  jest.setTimeout(30000);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -71,10 +78,7 @@ describe('Admin back-office (e2e)', () => {
           organizationId: orgAId,
         },
       });
-      const login = await request(app.getHttpServer())
-        .post('/api/auth/login')
-        .send({ email, password: 'Password123!' });
-      tenantTokensByRole[role] = login.body.data.accessToken;
+      tenantTokensByRole[role] = await loginAndGetAccessToken(app, email, 'Password123!');
     }
 
     // --- Organisation B : isolation multi-tenant ---

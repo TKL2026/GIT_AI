@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 /**
  * superagent ne bufferise `res.body` en Buffer que pour les types qu'il
@@ -77,10 +78,7 @@ describe('Reports (e2e)', () => {
         organizationId: orgAId,
       },
     });
-    const cashierLogin = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: cashierEmail, password: 'Password123!' });
-    cashierToken = cashierLogin.body.data.accessToken;
+    cashierToken = await loginAndGetAccessToken(app, cashierEmail, 'Password123!');
   });
 
   afterAll(async () => {

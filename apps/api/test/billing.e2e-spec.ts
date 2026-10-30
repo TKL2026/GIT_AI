@@ -6,6 +6,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { CamPayService } from '../src/modules/campay/campay.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { loginAndGetAccessToken } from './helpers/login-with-code';
 
 describe('Billing (e2e)', () => {
   let app: INestApplication;
@@ -79,11 +80,7 @@ describe('Billing (e2e)', () => {
   });
 
   it('refuse le checkout à un rôle CASHIER', async () => {
-    const loginResponse = await request(app.getHttpServer()).post('/api/auth/login').send({
-      email: cashierEmail,
-      password: 'Password123!',
-    });
-    const cashierToken = loginResponse.body.data.accessToken;
+    const cashierToken = await loginAndGetAccessToken(app, cashierEmail, 'Password123!');
 
     await request(app.getHttpServer())
       .post('/api/billing/checkout')

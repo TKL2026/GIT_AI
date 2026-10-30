@@ -43,6 +43,13 @@ class EnvironmentVariables {
   @IsString()
   JWT_PLATFORM_ADMIN_EXPIRES_IN: string = "8h";
 
+  /** Clé HMAC pour hasher le code de vérification à 6 chiffres envoyé à la
+   * connexion (voir AuthService#verifyLoginCode) — jamais le code en clair
+   * en base. Doit être distincte des secrets JWT ci-dessus. */
+  @IsString()
+  @MinLength(16)
+  LOGIN_CODE_PEPPER!: string;
+
   @IsString()
   CORS_ORIGIN: string = "http://localhost:5173";
 

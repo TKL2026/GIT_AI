@@ -23,6 +23,27 @@ function layout(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: strin
   `;
 }
 
+/** Variante sans bouton CTA, pour un code à recopier plutôt qu'un lien à
+ * cliquer (voir sendLoginVerificationCode). */
+function codeLayout(title: string, bodyHtml: string, code: string): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+      <p style="font-weight: 700; font-size: 18px; color: #111827; margin: 0 0 24px;">
+        <span style="color: ${BRAND_COLOR};">UGE</span>
+      </p>
+      <h1 style="font-size: 20px; color: #111827; margin: 0 0 16px;">${title}</h1>
+      <div style="font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 24px;">${bodyHtml}</div>
+      <p style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: ${BRAND_COLOR}; background: #f3f4f6; text-align: center; padding: 16px; border-radius: 8px; margin: 0 0 24px;">
+        ${code}
+      </p>
+      <p style="font-size: 12px; color: #9ca3af;">
+        Ce code expire dans 10 minutes et ne peut être utilisé qu'une seule fois.
+        Si vous n'êtes pas à l'origine de cette tentative, vous pouvez ignorer ce message.
+      </p>
+    </div>
+  `;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -61,6 +82,19 @@ export class MailService {
          tard. Ce lien est valable 24 heures.`,
         'Confirmer mon email',
         verifyUrl,
+      ),
+    );
+  }
+
+  async sendLoginVerificationCode(to: string, code: string): Promise<void> {
+    await this.send(
+      to,
+      'Votre code de connexion UGE',
+      codeLayout(
+        'Vérifiez votre adresse e-mail',
+        `Une tentative de connexion à votre compte UGE nécessite une vérification
+         supplémentaire. Saisissez le code ci-dessous pour continuer.`,
+        code,
       ),
     );
   }

@@ -1,4 +1,4 @@
-import type { AuthResponseDto } from '@copilote/shared';
+import type { AuthResponseDto, LoginChallengeResponseDto } from '@copilote/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
 
@@ -114,10 +114,25 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 export const apiClient = {
+  /** Étape 1/2 : identifiants corrects => un code à 6 chiffres est envoyé
+   * par email, aucune session n'est encore ouverte (voir verifyLoginCode). */
   login: (email: string, password: string) =>
-    request<AuthResponseDto>('/auth/login', {
+    request<LoginChallengeResponseDto>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    }),
+
+  /** Étape 2/2 : seul ce point d'entrée peut ouvrir une vraie session. */
+  verifyLoginCode: (challengeToken: string, code: string) =>
+    request<AuthResponseDto>('/auth/verify-login-code', {
+      method: 'POST',
+      body: JSON.stringify({ challengeToken, code }),
+    }),
+
+  resendLoginCode: (challengeToken: string) =>
+    request<LoginChallengeResponseDto>('/auth/resend-login-code', {
+      method: 'POST',
+      body: JSON.stringify({ challengeToken }),
     }),
 
   register: (payload: {

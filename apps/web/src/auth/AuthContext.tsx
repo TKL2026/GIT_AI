@@ -1,4 +1,4 @@
-import type { AuthResponseDto, UserDto } from '@copilote/shared';
+import type { AuthResponseDto, LoginChallengeResponseDto, UserDto } from '@copilote/shared';
 import {
   createContext,
   useCallback,
@@ -24,7 +24,12 @@ interface AuthContextValue {
   user: UserDto | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Étape 1/2 : identifiants corrects => renvoie une référence au code
+   * envoyé par email, n'ouvre pas de session (voir verifyLoginCode). */
+  login: (email: string, password: string) => Promise<LoginChallengeResponseDto>;
+  /** Étape 2/2 : seule méthode qui ouvre réellement une session. */
+  verifyLoginCode: (challengeToken: string, code: string) => Promise<void>;
+  resendLoginCode: (challengeToken: string) => Promise<LoginChallengeResponseDto>;
   loginAsDemo: () => Promise<void>;
   /** Créé le compte + l'organisation (nom d'entreprise renseigné à l'écran
    * suivant de l'onboarding) et connecte immédiatement l'utilisateur. */
@@ -55,9 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const response = await apiClient.login(email, password);
+    return apiClient.login(email, password);
+  }, []);
+
+  const verifyLoginCode = useCallback(async (challengeToken: string, code: string) => {
+    const response = await apiClient.verifyLoginCode(challengeToken, code);
     tokenStorage.setTokens(response.accessToken, response.refreshToken);
     setUser(response.user);
+  }, []);
+
+  const resendLoginCode = useCallback(async (challengeToken: string) => {
+    return apiClient.resendLoginCode(challengeToken);
   }, []);
 
   const loginAsDemo = useCallback(async () => {
@@ -88,12 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user,
       isLoading,
       login,
+      verifyLoginCode,
+      resendLoginCode,
       loginAsDemo,
       register,
       applyAuthResponse,
       logout,
     }),
-    [user, isLoading, login, loginAsDemo, register, applyAuthResponse, logout],
+    [
+      user,
+      isLoading,
+      login,
+      verifyLoginCode,
+      resendLoginCode,
+      loginAsDemo,
+      register,
+      applyAuthResponse,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

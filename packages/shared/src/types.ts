@@ -261,6 +261,25 @@ export interface AuthResponseDto extends AuthTokensDto {
   user: UserDto;
 }
 
+/** Réponse de POST /auth/login et /auth/resend-login-code — identifiants
+ * corrects mais aucune session réelle encore ouverte : un code à 6 chiffres
+ * a été envoyé par email, voir POST /auth/verify-login-code. */
+export interface LoginChallengeResponseDto {
+  challengeToken: string;
+  expiresInSeconds: number;
+  resendAvailableInSeconds: number;
+}
+
+/** Codes d'erreur structurés renvoyés par /auth/verify-login-code et
+ * /auth/resend-login-code (voir AuthService) — permettent au frontend
+ * d'afficher un message précis sans deviner depuis le texte libre. */
+export type LoginVerificationErrorCode =
+  | 'LOGIN_CHALLENGE_INVALID'
+  | 'LOGIN_CODE_EXPIRED'
+  | 'LOGIN_CODE_INVALID'
+  | 'LOGIN_CODE_MAX_ATTEMPTS'
+  | 'LOGIN_CODE_RESEND_TOO_SOON';
+
 export interface PlanDto {
   id: string;
   code: string;
