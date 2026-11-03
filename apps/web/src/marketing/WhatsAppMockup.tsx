@@ -10,18 +10,18 @@ interface MockMessage {
 const MESSAGES: MockMessage[] = [
   {
     from: 'copilot',
-    text: 'Bonjour 👋 Voici votre rapport du jour : 34 ventes, 612 000 XAF de chiffre d\'affaires, 2 produits proches de la rupture.',
+    text: 'Bonjour, voici votre rapport du jour : 34 ventes, 612 000 XAF de chiffre d\'affaires, 2 produits proches de la rupture.',
     time: '07:00',
   },
   {
     from: 'copilot',
-    text: '⚠️ Alerte stock : il ne reste que 4 unités de "Riz 25kg". Vous voulez que je prépare une commande fournisseur ?',
+    text: '⚠️ Alerte stock : il ne reste que 4 unités d\'un produit sous son seuil minimum. Vous voulez que je prépare une commande fournisseur ?',
     time: '11:20',
   },
   { from: 'user', text: 'Oui, montre-moi les ventes de la semaine.', time: '11:24' },
   {
     from: 'copilot',
-    text: 'Vos ventes sont en hausse de 18 % par rapport à la semaine dernière, portées par "Huile 5L" et "Sucre 1kg".',
+    text: 'Vos ventes sont en hausse de 18 % par rapport à la semaine dernière, portées par vos deux meilleurs produits.',
     time: '11:24',
   },
 ];

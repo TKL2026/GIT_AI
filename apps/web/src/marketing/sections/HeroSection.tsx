@@ -83,14 +83,14 @@ export function HeroSection() {
             icon={IconPackage}
             color="error"
             title="2 produits en stock faible"
-            description="Riz 25kg, Sel 1kg"
+            description="Seuil minimum atteint"
             style={{ top: -18, left: -18 }}
           />
           <FloatingCard
             icon={IconSparkles}
             color="emerald"
             title="Recommandation IA"
-            description="Réapprovisionner Huile 5L"
+            description="Réapprovisionnement à prévoir"
             style={{ bottom: -18, right: -18 }}
           />
           <FloatingCard
