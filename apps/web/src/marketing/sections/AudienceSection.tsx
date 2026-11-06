@@ -21,8 +21,8 @@ export function AudienceSection() {
               Pensé pour les entreprises qui vendent et qui stockent.
             </Title>
             <Text c="dimmed" size="lg">
-              Que vous soyez une PME en France, en Europe ou en Afrique, UGE
-              s'adapte à votre activité.
+              Que vous soyez une entreprise au Cameroun ou ailleurs en Afrique, UGE
+              s'adapte aux réalités de votre activité.
             </Text>
           </Stack>
 

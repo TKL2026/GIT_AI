@@ -2,7 +2,7 @@ import { Card, Container, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@man
 import {
   IconBellRinging,
   IconBoxSeam,
-  IconBrandWhatsapp,
+  IconFileText,
   IconLayoutDashboard,
   IconMessageChatbot,
   IconReceipt,
@@ -21,7 +21,7 @@ const REASONS: { icon: Icon; title: string; description: string }[] = [
   { icon: IconLayoutDashboard, title: 'Tableau de bord', description: "Une vue d'ensemble claire de votre activité." },
   { icon: IconMessageChatbot, title: 'Copilote IA', description: 'Une intelligence qui lit vos données pour vous.' },
   { icon: IconBellRinging, title: 'Alertes', description: 'Prévenu automatiquement quand quelque chose compte.' },
-  { icon: IconBrandWhatsapp, title: 'WhatsApp', description: 'Informé directement, même loin de votre écran.' },
+  { icon: IconFileText, title: 'Rapports', description: 'Rapports journaliers et mensuels, consultables et exportables en PDF.' },
   { icon: IconTrendingUp, title: 'Analyse et recommandations', description: 'Des données transformées en actions concrètes.' },
 ];
 

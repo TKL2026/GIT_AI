@@ -1,9 +1,9 @@
 import { Anchor, Container, Stack, Text, Title } from '@mantine/core';
 import {
-  IconBrandWhatsapp,
   IconBuildingWarehouse,
   IconCash,
   IconChartBar,
+  IconFileText,
   IconMessageChatbot,
   IconPackage,
   IconReceipt,
@@ -62,9 +62,9 @@ const FEATURES: FeatureItem[] = [
   },
   {
     icon: IconChartBar,
-    title: 'Rapports',
+    title: 'Tableau de bord',
     description:
-      "Tableau de bord avec vue d'ensemble de l'activité, performance commerciale et historique des événements récents.",
+      "Vue d'ensemble de l'activité, performance commerciale et historique des événements récents.",
   },
   {
     icon: IconMessageChatbot,
@@ -73,9 +73,9 @@ const FEATURES: FeatureItem[] = [
       'Analyse vos données réelles pour répondre à vos questions, anticiper vos ruptures et repérer les anomalies.',
   },
   {
-    icon: IconBrandWhatsapp,
-    title: 'WhatsApp',
-    description: 'Recevez votre rapport quotidien et interrogez votre Copilote directement depuis WhatsApp.',
+    icon: IconFileText,
+    title: 'Rapports',
+    description: 'Rapports journaliers et mensuels, consultables dans votre espace et exportables en PDF.',
   },
 ];
 
@@ -118,13 +118,9 @@ export function FonctionnalitesPage() {
             <Anchor component={Link} to="/gestion-entreprise">
               gestion d'entreprise
             </Anchor>
-            , au{' '}
+            ou au{' '}
             <Anchor component={Link} to="/copilote-ia">
               Copilote IA
-            </Anchor>{' '}
-            ou à l'
-            <Anchor component={Link} to="/whatsapp">
-              intégration WhatsApp
             </Anchor>
             .
           </Text>

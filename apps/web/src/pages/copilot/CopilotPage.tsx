@@ -24,7 +24,6 @@ import {
   IconReportAnalytics,
   IconSend,
   IconShieldExclamation,
-  IconSparkles,
   IconTrash,
   IconTruckDelivery,
 } from '@tabler/icons-react';
@@ -210,12 +209,9 @@ export function CopilotPage() {
           <Stack gap="sm">
             {messages.length === 0 && (
               <Stack gap="lg" py="md">
-                <Group gap="xs">
-                  <IconSparkles size={22} color="var(--mantine-color-emerald-6)" />
-                  <Title order={4}>
-                    Bonjour {user?.firstName}, j'ai analysé votre activité.
-                  </Title>
-                </Group>
+                <Title order={4}>
+                  Bonjour {user?.firstName}, j'ai analysé votre activité.
+                </Title>
 
                 {hasRecommendations ? (
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
