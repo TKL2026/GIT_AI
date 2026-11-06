@@ -11,7 +11,6 @@ import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
 import { HeroSection } from './sections/HeroSection';
 import { HowItWorksSection } from './sections/HowItWorksSection';
-import { IntegrationsSection } from './sections/IntegrationsSection';
 import { PricingIntroSection } from './sections/PricingIntroSection';
 import { PricingPhilosophySection } from './sections/PricingPhilosophySection';
 import { PricingPlansSection } from './sections/PricingPlansSection';
@@ -71,7 +70,6 @@ export function LandingPage() {
         <ProblemSection />
         <CopilotAiSection />
         <WhatsAppSection />
-        <IntegrationsSection />
         <HowItWorksSection />
         <AudienceSection />
         <DifferentiationSection />
