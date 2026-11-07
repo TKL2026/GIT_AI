@@ -39,10 +39,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
     type: LoginChallengeResponseDto,
-    description: "Identifiants corrects : un code a été envoyé par email, aucune session n'est encore ouverte.",
+    description:
+      "Identifiants corrects : un code a été envoyé par email (sauf pour le compte démo exempté, qui reçoit directement une session).",
   })
-  async login(@Body() dto: LoginDto): Promise<LoginChallengeResponseDto> {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+  ): Promise<LoginChallengeResponseDto | AuthResponseDto> {
+    const result = await this.authService.login(dto);
+    if ('tokens' in result) {
+      return { ...result.tokens, user: UserResponseDto.fromEntity(result.user) };
+    }
+    return result;
   }
 
   @Public()

@@ -311,6 +311,9 @@ describe('AuthService', () => {
         password: 'Password123!',
       });
 
+      if (!('challengeToken' in result)) {
+        throw new Error('Un challenge était attendu (pas de bypass configuré).');
+      }
       expect(result.challengeToken).toEqual(expect.any(String));
       expect(result.expiresInSeconds).toBe(600);
       expect(result.resendAvailableInSeconds).toBe(60);
@@ -320,6 +323,54 @@ describe('AuthService', () => {
         fakeUser.email,
         expect.stringMatching(/^\d{6}$/),
       );
+    });
+
+    it('saute le code et émet directement des tokens pour le compte exempté (TWO_FA_BYPASS_EMAIL)', async () => {
+      usersService.findByEmail.mockResolvedValue(fakeUser);
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          JWT_ACCESS_EXPIRES_IN: '15m',
+          JWT_REFRESH_EXPIRES_IN: '7d',
+          LOGIN_CODE_PEPPER: 'test-pepper-not-for-production',
+          TWO_FA_BYPASS_EMAIL: 'owner@demo.com',
+        };
+        return values[key];
+      });
+
+      const result = await authService.login({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+      });
+
+      if (!('tokens' in result)) {
+        throw new Error('Des tokens directs étaient attendus (compte exempté).');
+      }
+      expect(result.tokens.accessToken).toEqual(expect.any(String));
+      expect(result.user).toEqual(fakeUser);
+      expect(mailService.sendLoginVerificationCode).not.toHaveBeenCalled();
+      expect(prisma.loginVerification.create).not.toHaveBeenCalled();
+    });
+
+    it("ignore l'exemption si l'email ne correspond pas exactement (comparaison insensible à la casse uniquement)", async () => {
+      usersService.findByEmail.mockResolvedValue(fakeUser);
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          LOGIN_CODE_PEPPER: 'test-pepper-not-for-production',
+          TWO_FA_BYPASS_EMAIL: 'autre-compte@demo.com',
+        };
+        return values[key];
+      });
+
+      const result = await authService.login({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+      });
+
+      expect('challengeToken' in result).toBe(true);
     });
 
     it('invalide toute vérification de connexion encore active pour cet utilisateur avant d\'en créer une nouvelle', async () => {

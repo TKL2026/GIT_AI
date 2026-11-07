@@ -115,9 +115,11 @@ async function tryRefresh(): Promise<boolean> {
 
 export const apiClient = {
   /** Étape 1/2 : identifiants corrects => un code à 6 chiffres est envoyé
-   * par email, aucune session n'est encore ouverte (voir verifyLoginCode). */
+   * par email, aucune session n'est encore ouverte (voir verifyLoginCode).
+   * Exception : le compte démo exempté (TWO_FA_BYPASS_EMAIL côté serveur)
+   * reçoit directement une session complète (AuthResponseDto). */
   login: (email: string, password: string) =>
-    request<LoginChallengeResponseDto>('/auth/login', {
+    request<LoginChallengeResponseDto | AuthResponseDto>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),

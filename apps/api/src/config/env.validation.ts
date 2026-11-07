@@ -126,6 +126,13 @@ class EnvironmentVariables {
   @IsString()
   DEMO_USER_EMAIL?: string;
 
+  /** Optionnel : si définie, ce compte (identifié par email) saute l'étape
+   * de code de vérification à la connexion — email + mot de passe suffisent.
+   * Réservé à un compte démo partagé publiquement, jamais un compte réel. */
+  @IsOptional()
+  @IsString()
+  TWO_FA_BYPASS_EMAIL?: string;
+
   /** Optionnel : sans ces variables, les routes /billing/checkout et le
    * webhook CamPay répondent 503. Ne jamais mélanger sandbox/production. */
   @IsOptional()

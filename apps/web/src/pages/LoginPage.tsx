@@ -69,9 +69,15 @@ export function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const challenge = await login(values.email, values.password);
-      setChallengeToken(challenge.challengeToken);
-      setResendInSeconds(challenge.resendAvailableInSeconds);
+      const result = await login(values.email, values.password);
+      if ('accessToken' in result) {
+        // Compte exempté de la vérification par code (voir AuthContext.login) :
+        // la session est déjà ouverte, on saute directement l'étape code.
+        navigate('/dashboard');
+        return;
+      }
+      setChallengeToken(result.challengeToken);
+      setResendInSeconds(result.resendAvailableInSeconds);
       setCode('');
       setStep('code');
     } catch (err) {

@@ -153,7 +153,9 @@ export class AuthService {
    * référence à cette demande de vérification — voir verifyLoginCode()
    * pour l'étape 2, qui seule peut émettre de vrais tokens.
    */
-  async login(dto: LoginDto): Promise<LoginChallengeResponseDto> {
+  async login(
+    dto: LoginDto,
+  ): Promise<LoginChallengeResponseDto | { user: User; tokens: AuthTokens }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException("Identifiants invalides.");
@@ -165,6 +167,16 @@ export class AuthService {
     );
     if (!passwordMatches) {
       throw new UnauthorizedException("Identifiants invalides.");
+    }
+
+    // Exception volontaire et restreinte : un unique compte (configuré via
+    // TWO_FA_BYPASS_EMAIL, réservé au compte démo partagé publiquement)
+    // saute l'étape de code email — tous les autres comptes passent
+    // toujours par startLoginVerification() ci-dessous, inchangé.
+    const bypassEmail = this.configService.get<string>("TWO_FA_BYPASS_EMAIL");
+    if (bypassEmail && user.email.toLowerCase() === bypassEmail.toLowerCase()) {
+      const tokens = await this.issueTokens(user);
+      return { user, tokens };
     }
 
     return this.startLoginVerification(user);

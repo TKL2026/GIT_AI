@@ -25,8 +25,10 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   /** Étape 1/2 : identifiants corrects => renvoie une référence au code
-   * envoyé par email, n'ouvre pas de session (voir verifyLoginCode). */
-  login: (email: string, password: string) => Promise<LoginChallengeResponseDto>;
+   * envoyé par email, n'ouvre pas de session (voir verifyLoginCode).
+   * Exception : pour le compte démo exempté, la session est déjà ouverte
+   * et le résultat a `accessToken` au lieu de `challengeToken`. */
+  login: (email: string, password: string) => Promise<LoginChallengeResponseDto | AuthResponseDto>;
   /** Étape 2/2 : seule méthode qui ouvre réellement une session. */
   verifyLoginCode: (challengeToken: string, code: string) => Promise<void>;
   resendLoginCode: (challengeToken: string) => Promise<LoginChallengeResponseDto>;
@@ -60,7 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    return apiClient.login(email, password);
+    const response = await apiClient.login(email, password);
+    if ('accessToken' in response) {
+      tokenStorage.setTokens(response.accessToken, response.refreshToken);
+      setUser(response.user);
+    }
+    return response;
   }, []);
 
   const verifyLoginCode = useCallback(async (challengeToken: string, code: string) => {
