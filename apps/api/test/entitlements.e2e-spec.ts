@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { CamPayService } from '../src/modules/campay/campay.service';
@@ -41,9 +41,14 @@ describe('Entitlements Standard/Pro (e2e)', () => {
       .useValue(camPayService)
       // Ce fichier crée beaucoup de comptes/paiements/invitations pour
       // couvrir Standard/Pro/Trial/multi-tenant — pas un test de
-      // rate-limiting, désactivé pour ne pas dépendre du volume de requêtes.
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
+      // rate-limiting. overrideGuard(ThrottlerGuard) ne fonctionne pas ici
+      // (le guard global est fourni via APP_GUARD, pas comme injectable
+      // nommé ThrottlerGuard) : on neutralise directement le stockage des
+      // compteurs, qui lui est un vrai provider DI.
+      .overrideProvider(ThrottlerStorage)
+      .useValue({
+        increment: async () => ({ totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -372,6 +377,43 @@ describe('Entitlements Standard/Pro (e2e)', () => {
         .expect(200);
       await request(app.getHttpServer())
         .get('/api/commercial/products-to-push')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+    });
+  });
+
+  describe('Programme de lancement (LAUNCH_PROGRAM)', () => {
+    let accessToken: string;
+
+    beforeAll(async () => {
+      const registerResponse = await request(app.getHttpServer()).post('/api/auth/register').send({
+        organizationName: 'Org Launch Program E2E',
+        email: `entitlements-launch-${Date.now()}@demo.com`,
+        password: 'Password123!',
+        firstName: 'Test',
+        lastName: 'LaunchProgram',
+      });
+      accessToken = registerResponse.body.data.accessToken;
+      const organizationId = registerResponse.body.data.user.organizationId;
+      createdOrgIds.push(organizationId);
+
+      // Bascule directe en LAUNCH_PROGRAM (contourne le flag d'inscription,
+      // non activé dans cet environnement de test) — même mécanisme que
+      // copilot-quota.e2e-spec.ts.
+      await prisma.subscription.update({ where: { organizationId }, data: { status: 'LAUNCH_PROGRAM' } });
+    });
+
+    it('accède aux fonctionnalités Pro (niveau complet), sans jamais avoir payé', async () => {
+      await request(app.getHttpServer())
+        .get('/api/forecast/replenishment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/api/commercial/products-to-push')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/api/fraud/anomalies')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });

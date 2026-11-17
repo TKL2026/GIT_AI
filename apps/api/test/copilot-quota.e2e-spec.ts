@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { CamPayService } from '../src/modules/campay/campay.service';
@@ -20,7 +20,7 @@ describe('Copilot quota (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let camPayService: { collect: jest.Mock; getTransactionStatus: jest.Mock; verifyWebhookSignature: jest.Mock };
-  let copilotService: { chat: jest.Mock; generateDailyReport: jest.Mock };
+  let copilotService: { chat: jest.Mock };
 
   const createdOrgIds: string[] = [];
 
@@ -32,7 +32,6 @@ describe('Copilot quota (e2e)', () => {
     };
     copilotService = {
       chat: jest.fn().mockResolvedValue('Réponse factice du Copilote.'),
-      generateDailyReport: jest.fn().mockResolvedValue('Rapport factice.'),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -43,9 +42,14 @@ describe('Copilot quota (e2e)', () => {
       .overrideProvider(CopilotService)
       .useValue(copilotService)
       // Plusieurs inscriptions dans ce fichier dépasseraient la limite
-      // @Throttle(5/min) de /auth/register — même pattern que entitlements.e2e-spec.ts.
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
+      // @Throttle(5/min) de /auth/register. overrideGuard(ThrottlerGuard) ne
+      // fonctionne pas ici (le guard global est fourni via APP_GUARD, pas
+      // comme injectable nommé ThrottlerGuard) : on neutralise directement
+      // le stockage des compteurs, qui lui est un vrai provider DI.
+      .overrideProvider(ThrottlerStorage)
+      .useValue({
+        increment: async () => ({ totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 }),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -58,6 +62,8 @@ describe('Copilot quota (e2e)', () => {
 
   afterAll(async () => {
     for (const organizationId of createdOrgIds) {
+      const users = await prisma.user.findMany({ where: { organizationId }, select: { id: true } });
+      await prisma.copilotUserUsage.deleteMany({ where: { userId: { in: users.map((u) => u.id) } } });
       await prisma.paymentTransaction.deleteMany({ where: { organizationId } });
       await prisma.subscription.deleteMany({ where: { organizationId } });
       await prisma.user.deleteMany({ where: { organizationId } });
@@ -65,6 +71,11 @@ describe('Copilot quota (e2e)', () => {
     }
     await app.close();
   });
+
+  function currentPeriodKey(): string {
+    const now = new Date();
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
 
   async function registerAndActivate(
     organizationName: string,
@@ -231,6 +242,46 @@ describe('Copilot quota (e2e)', () => {
         .get('/api/forecast/replenishment')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
+    });
+  });
+
+  describe('Programme de lancement (LAUNCH_PROGRAM, quota 700/mois/utilisateur)', () => {
+    it("consomme le quota PAR UTILISATEUR (pas par organisation) et refuse la 701e requête de CET utilisateur", async () => {
+      const email = `copilot-quota-launch-${Date.now()}@demo.com`;
+      const registerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          organizationName: 'Copilot Quota Launch Program E2E',
+          email,
+          password: 'Password123!',
+          firstName: 'Test',
+          lastName: 'User',
+        })
+        .expect(201);
+
+      const accessToken = registerResponse.body.data.accessToken;
+      const organizationId = registerResponse.body.data.user.organizationId;
+      const userId = registerResponse.body.data.user.id;
+      createdOrgIds.push(organizationId);
+
+      // Bascule directe en LAUNCH_PROGRAM (contourne le flag d'inscription,
+      // non activé dans cet environnement de test) — même organisation,
+      // seul le statut change.
+      await prisma.subscription.update({ where: { organizationId }, data: { status: 'LAUNCH_PROGRAM' } });
+      await prisma.copilotUserUsage.upsert({
+        where: { userId_periodKey: { userId, periodKey: currentPeriodKey() } },
+        create: { userId, periodKey: currentPeriodKey(), requestsUsed: 699 },
+        update: { requestsUsed: 699 },
+      });
+
+      await chat(accessToken).expect(201); // 700e : encore autorisée
+      const refused = await chat(accessToken).expect(403); // 701e : refusée
+      expect(refused.body.code).toBe('COPILOT_QUOTA_EXCEEDED');
+
+      // Le compteur ORG (copilotRequestsUsed) n'a pas bougé : c'est bien le
+      // compteur PAR UTILISATEUR qui a été consommé, pas l'ancien mécanisme.
+      const subscription = await prisma.subscription.findUniqueOrThrow({ where: { organizationId } });
+      expect(subscription.copilotRequestsUsed).toBe(0);
     });
   });
 

@@ -341,4 +341,15 @@ describe('Auth (e2e)', () => {
       .expect(200);
     expect(verifyA.body.data.user.email).toBe(emailA);
   });
+
+  // Le comportement de register() quand LAUNCH_PROGRAM_ENABLED="true" n'est
+  // PAS testable ici : ConfigModule.forRoot() s'exécute une seule fois, au
+  // moment où app.module.ts est importé par ce fichier de test (évaluation
+  // du décorateur @Module, mise en cache par Node) — recompiler un
+  // TestingModule après avoir modifié process.env ne refait pas cette
+  // lecture, donc ConfigService.get() renvoie toujours la valeur figée au
+  // premier import, quoi que process.env contienne ensuite. Ce scénario est
+  // couvert correctement au niveau unitaire dans auth.service.spec.ts, où
+  // ConfigService est mocké directement (pas de ConfigModule réel, donc pas
+  // ce piège de mise en cache).
 });

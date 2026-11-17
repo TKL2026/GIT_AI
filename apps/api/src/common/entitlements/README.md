@@ -77,9 +77,9 @@ sur les lignes déjà présentes).
    SubscriptionGuard → FeatureGuard → RolesGuard` (voir `app.module.ts`).
 
 **Ne pas garder une fonctionnalité qui n'a pas d'implémentation distincte.**
-Exemple concret : le Copilot IA n'a qu'une seule implémentation (`chat`,
-`daily-report`) — pas de version "avancée" séparée dans le code. Il n'existe
-donc qu'un seul code `COPILOT_BASIC`, inclus dans Standard (et donc Pro).
+Exemple concret : le Copilot IA n'a qu'une seule implémentation (`chat`) —
+pas de version "avancée" séparée dans le code. Il n'existe donc qu'un seul
+code `COPILOT_BASIC`, inclus dans Standard (et donc Pro).
 Ne pas inventer un `COPILOT_ADVANCED` qui ne gardera rien de réel.
 
 ## Limite de sièges (`Plan.features.maxUsers`)

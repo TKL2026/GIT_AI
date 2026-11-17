@@ -31,6 +31,16 @@ describe('EntitlementsService', () => {
     expect(features.has(FEATURES.WHATSAPP)).toBe(true);
   });
 
+  it('accorde le niveau Pro complet pendant un LAUNCH_PROGRAM (même raisonnement que TRIAL)', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({ status: 'LAUNCH_PROGRAM', plan: null });
+
+    const features = await service.getFeatures(organizationId);
+
+    expect([...features].sort()).toEqual([...PRO_FEATURES].sort());
+    expect(features.has(FEATURES.FORECAST)).toBe(true);
+    expect(features.has(FEATURES.WHATSAPP)).toBe(true);
+  });
+
   it('ACTIVE + plan Standard : renvoie exactement les features du plan, ni plus ni moins', async () => {
     prisma.subscription.findUnique.mockResolvedValue({
       status: 'ACTIVE',

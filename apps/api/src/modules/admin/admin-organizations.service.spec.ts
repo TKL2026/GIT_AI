@@ -135,5 +135,15 @@ describe('AdminOrganizationsService', () => {
         expect.anything(),
       );
     });
+
+    it('accepte un abonnement LAUNCH_PROGRAM (pas seulement TRIAL/TRIAL_EXPIRED) et préserve ce statut après prolongation', async () => {
+      const future = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);
+      prisma.subscription.findUnique.mockResolvedValue({ status: 'LAUNCH_PROGRAM', currentPeriodEnd: future });
+
+      await service.extendTrial('org-1', 7, performedBy);
+
+      const call = txSubscriptionUpdate.mock.calls[0][0];
+      expect(call.data.status).toBe('LAUNCH_PROGRAM');
+    });
   });
 });

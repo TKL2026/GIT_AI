@@ -1,5 +1,4 @@
 import { classifyComplexity } from './model-router';
-import { DAILY_REPORT_PROMPT } from './prompts';
 
 describe('classifyComplexity', () => {
   describe('messages simples (Haiku attendu)', () => {
@@ -14,6 +13,25 @@ describe('classifyComplexity', () => {
 
     it.each(simpleMessages)('classe "%s" comme simple', (message) => {
       expect(classifyComplexity(message)).toBe('simple');
+    });
+  });
+
+  describe('salutations / small-talk (Haiku attendu)', () => {
+    const greetings = [
+      'Bonjour',
+      'Bonsoir, comment allez-vous ?',
+      'Salut, merci !',
+      'Merci beaucoup',
+      'Bonjour, comment ça va ?',
+    ];
+
+    it.each(greetings)('classe "%s" comme simple', (message) => {
+      expect(classifyComplexity(message)).toBe('simple');
+    });
+
+    it('ne masque jamais un vrai signal complexe derrière une salutation', () => {
+      const message = 'Bonjour, peux-tu analyser mes finances et expliquer pourquoi ma marge baisse ?';
+      expect(classifyComplexity(message)).toBe('complex');
     });
   });
 
@@ -33,16 +51,12 @@ describe('classifyComplexity', () => {
       expect(classifyComplexity(forbidden)).toBe('complex');
     });
 
-    it('route le rapport quotidien (DAILY_REPORT_PROMPT) vers Sonnet', () => {
-      expect(classifyComplexity(DAILY_REPORT_PROMPT)).toBe('complex');
-    });
-
     it('force Sonnet dès que 3 domaines métier ou plus sont combinés, même sans mot-clé d\'analyse', () => {
       expect(classifyComplexity('Donne-moi mes ventes, mon stock et mes achats.')).toBe('complex');
     });
 
-    it('force Sonnet pour un message ambigu/hors des signaux simples connus (biais de sécurité par défaut)', () => {
-      expect(classifyComplexity('Bonjour, comment ça va ?')).toBe('complex');
+    it('force Sonnet pour un message ambigu/hors des signaux simples et des salutations connues (biais de sécurité par défaut)', () => {
+      expect(classifyComplexity('Peux-tu regarder ça pour moi ?')).toBe('complex');
     });
 
     it('force Sonnet pour un message simple en apparence mais anormalement long, même sans mot-clé complexe', () => {

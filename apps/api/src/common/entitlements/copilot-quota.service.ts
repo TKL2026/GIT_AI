@@ -76,4 +76,18 @@ export class CopilotQuotaService {
 
     return { allowed: result.count === 1, limit };
   }
+
+  /**
+   * Compense un consumeOne() dont l'appel Anthropic a échoué techniquement
+   * (voir CopilotService#chat) — jamais appelé pour un quota déjà refusé.
+   * Garde `copilotRequestsUsed: { gt: 0 }` : ne peut jamais repasser sous
+   * zéro. Pas de notion de "limite" ici — un décrément est toujours sûr
+   * indépendamment du plafond courant.
+   */
+  async releaseOne(organizationId: string): Promise<void> {
+    await this.prisma.subscription.updateMany({
+      where: { organizationId, copilotRequestsUsed: { gt: 0 } },
+      data: { copilotRequestsUsed: { decrement: 1 } },
+    });
+  }
 }

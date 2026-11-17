@@ -104,6 +104,37 @@ describe('SubscriptionGuard', () => {
     });
   });
 
+  it('laisse passer un LAUNCH_PROGRAM encore valide (currentPeriodEnd dans le futur)', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      id: 'sub-1',
+      status: 'LAUNCH_PROGRAM',
+      currentPeriodEnd: new Date(Date.now() + 60_000),
+    });
+    const result = await guard.canActivate(buildContext(fakeUser));
+    expect(result).toBe(true);
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('bloque (403, code SUBSCRIPTION_EXPIRED) et auto-guérit LAUNCH_PROGRAM -> TRIAL_EXPIRED (même état terminal que TRIAL) dont currentPeriodEnd est passé', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      id: 'sub-1',
+      status: 'LAUNCH_PROGRAM',
+      currentPeriodEnd: new Date(Date.now() - 1000),
+    });
+
+    await expect(guard.canActivate(buildContext(fakeUser))).rejects.toMatchObject({
+      constructor: ForbiddenException,
+      response: { code: 'SUBSCRIPTION_EXPIRED' },
+    });
+
+    // Le CAS porte sur le statut COURANT (LAUNCH_PROGRAM), pas un littéral
+    // "TRIAL" — sinon il ne matcherait jamais une ligne LAUNCH_PROGRAM.
+    expect(prisma.subscription.updateMany).toHaveBeenCalledWith({
+      where: { id: 'sub-1', status: 'LAUNCH_PROGRAM' },
+      data: { status: 'TRIAL_EXPIRED' },
+    });
+  });
+
   it('bloque (403, code SUBSCRIPTION_EXPIRED) un abonnement déjà TRIAL_EXPIRED sans retenter d’auto-guérison (déjà dans cet état)', async () => {
     prisma.subscription.findUnique.mockResolvedValue({
       id: 'sub-1',

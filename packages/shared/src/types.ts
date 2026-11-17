@@ -252,6 +252,17 @@ export interface ChatMessageDto {
   content: string;
 }
 
+/** Réponse de GET /copilot/quota — `limit`/`remaining` à `null` signifie
+ * illimité (ex: pas de ligne Subscription). `isLaunchProgram` indique si le
+ * quota affiché est le compteur individuel par utilisateur (programme de
+ * lancement) ou l'ancien compteur par organisation. */
+export interface CopilotQuotaDto {
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  isLaunchProgram: boolean;
+}
+
 export interface AuthTokensDto {
   accessToken: string;
   refreshToken: string;

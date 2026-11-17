@@ -104,4 +104,23 @@ describe('CopilotQuotaService', () => {
       });
     });
   });
+
+  describe('releaseOne', () => {
+    it('décrémente le compteur de façon atomique', async () => {
+      prisma.subscription.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.releaseOne(organizationId);
+
+      expect(prisma.subscription.updateMany).toHaveBeenCalledWith({
+        where: { organizationId, copilotRequestsUsed: { gt: 0 } },
+        data: { copilotRequestsUsed: { decrement: 1 } },
+      });
+    });
+
+    it('ne fait rien (no-op) si le compteur est déjà à 0 — ne peut jamais repasser sous zéro', async () => {
+      prisma.subscription.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.releaseOne(organizationId)).resolves.toBeUndefined();
+    });
+  });
 });

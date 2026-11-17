@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BusinessDataProvider } from './contracts/business-data-provider.interface';
 import { classifyComplexity } from './model-router';
-import { DAILY_REPORT_PROMPT, SYSTEM_PROMPT } from './prompts';
+import { SYSTEM_PROMPT } from './prompts';
 import { COPILOT_TOOLS } from './tools';
 
 export interface ChatMessage {
@@ -17,6 +17,11 @@ export interface ChatResult {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Tokens d'écriture/lecture du cache de prompt Anthropic — nécessaires
+   * pour un coût estimé exact (le cache-read coûte ~10x moins cher qu'un
+   * token d'entrée standard). */
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
   toolsUsed: string[];
 }
 
@@ -42,7 +47,17 @@ export interface CopilotEngineOptions {
 const DEFAULT_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_SONNET_MODEL = 'claude-sonnet-5';
 const DEFAULT_MAX_TOOL_ITERATIONS = 6;
-const DEFAULT_MAX_TOKENS = 2048;
+// Haiku ne pense jamais (modèle pré-4.6, pas de thinking adaptatif par
+// défaut) : les réponses de lookup ERP simple restent courtes.
+const HAIKU_MAX_TOKENS = 1536;
+// Sonnet 5 active le thinking adaptatif par défaut dès que `thinking` est
+// omis, et les tokens de réflexion sont facturés comme tokens de sortie
+// PARTAGEANT le même budget max_tokens que la réponse visible — un budget
+// dimensionné pour un simple lookup tronquerait silencieusement la réponse
+// sur les requêtes complexes. On réserve donc davantage de marge et on
+// déclare `thinking` explicitement (voir plus bas) plutôt que de compter
+// sur le défaut implicite, moins lisible et plus fragile si l'API change.
+const SONNET_MAX_TOKENS = 4096;
 
 export class CopilotEngine {
   private readonly client: AnthropicMessagesClient;
@@ -77,26 +92,40 @@ export class CopilotEngine {
 
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheCreationInputTokens = 0;
+    let cacheReadInputTokens = 0;
     const toolsUsed = new Set<string>();
 
     for (let iteration = 0; iteration < this.maxToolIterations; iteration += 1) {
       const response = await this.client.messages.create({
         model,
-        max_tokens: DEFAULT_MAX_TOKENS,
+        max_tokens: tier === 'simple' ? HAIKU_MAX_TOKENS : SONNET_MAX_TOKENS,
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
         tools: COPILOT_TOOLS,
-        // Non appliqué au tiers Haiku : compatibilité non confirmée pour ce
-        // modèle, et les requêtes "simples" n'ont de toute façon pas besoin
-        // d'un effort de raisonnement supplémentaire.
-        ...(tier === 'complex' ? { output_config: { effort: 'medium' as const } } : {}),
+        // Jamais appliqué au tiers Haiku (modèle pré-4.6, non concerné par
+        // le thinking adaptatif ni par `effort`, qui y renvoie une erreur) :
+        // thinking déclaré explicitement + effort modéré sur Sonnet.
+        ...(tier === 'complex'
+          ? { thinking: { type: 'adaptive' as const }, output_config: { effort: 'medium' as const } }
+          : {}),
         messages: conversation,
       });
 
       inputTokens += response.usage?.input_tokens ?? 0;
       outputTokens += response.usage?.output_tokens ?? 0;
+      cacheCreationInputTokens += response.usage?.cache_creation_input_tokens ?? 0;
+      cacheReadInputTokens += response.usage?.cache_read_input_tokens ?? 0;
 
       if (response.stop_reason !== 'tool_use') {
-        return { message: extractText(response), model, inputTokens, outputTokens, toolsUsed: [...toolsUsed] };
+        return {
+          message: extractText(response),
+          model,
+          inputTokens,
+          outputTokens,
+          cacheCreationInputTokens,
+          cacheReadInputTokens,
+          toolsUsed: [...toolsUsed],
+        };
       }
 
       conversation.push({ role: 'assistant', content: response.content });
@@ -116,10 +145,6 @@ export class CopilotEngine {
     }
 
     throw new Error("Le copilote n'a pas pu conclure dans le nombre d'itérations d'outils autorisé.");
-  }
-
-  async generateDailyReport(tenantId: string): Promise<ChatResult> {
-    return this.chat(tenantId, [{ role: 'user', content: DAILY_REPORT_PROMPT }]);
   }
 
   private async executeTool(tenantId: string, name: string, input: unknown): Promise<string> {

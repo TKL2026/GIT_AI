@@ -26,8 +26,10 @@ export function isSubscriptionLocked(
   // verrouillé inconditionnellement tant que le webhook n'a pas activé
   // l'abonnement (voir BillingService#activateSubscription).
   if (subscription.status === "AWAITING_PAYMENT") return true;
+  // LAUNCH_PROGRAM suit exactement la même logique d'expiration que TRIAL
+  // (même durée limitée, même état terminal TRIAL_EXPIRED en sortie).
   if (
-    subscription.status === "TRIAL" &&
+    (subscription.status === "TRIAL" || subscription.status === "LAUNCH_PROGRAM") &&
     subscription.currentPeriodEnd !== null &&
     subscription.currentPeriodEnd < new Date()
   ) {

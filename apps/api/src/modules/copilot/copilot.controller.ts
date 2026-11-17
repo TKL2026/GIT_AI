@@ -8,17 +8,17 @@ import { AuthenticatedUser } from "../../common/types/authenticated-user.interfa
 import { CopilotService } from "./copilot.service";
 import { ChatRequestDto } from "./dto/chat-request.dto";
 import { ChatResponseDto } from "./dto/chat-response.dto";
-import { DailyReportResponseDto } from "./dto/daily-report-response.dto";
+import { CopilotQuotaResponseDto } from "./dto/copilot-quota-response.dto";
 
 @ApiTags("copilot")
 @ApiBearerAuth()
 @Roles(Role.OWNER, Role.ADMIN, Role.DIRECTOR)
-@UseGuards(CopilotQuotaGuard)
 @Controller("copilot")
 export class CopilotController {
   constructor(private readonly copilotService: CopilotService) {}
 
   @Post("chat")
+  @UseGuards(CopilotQuotaGuard)
   @ApiOkResponse({ type: ChatResponseDto })
   async chat(
     @CurrentUser() currentUser: AuthenticatedUser,
@@ -26,19 +26,23 @@ export class CopilotController {
   ): Promise<ChatResponseDto> {
     const message = await this.copilotService.chat(
       currentUser.organizationId,
+      currentUser.userId,
+      currentUser.copilotQuotaMechanism === "per-user",
       dto.messages,
     );
     return { message };
   }
 
-  @Get("daily-report")
-  @ApiOkResponse({ type: DailyReportResponseDto })
-  async dailyReport(
+  // Lecture seule, jamais derrière CopilotQuotaGuard : consulter son quota
+  // ne doit jamais en consommer une unité.
+  @Get("quota")
+  @ApiOkResponse({ type: CopilotQuotaResponseDto })
+  async quota(
     @CurrentUser() currentUser: AuthenticatedUser,
-  ): Promise<DailyReportResponseDto> {
-    const report = await this.copilotService.generateDailyReport(
+  ): Promise<CopilotQuotaResponseDto> {
+    return this.copilotService.getQuotaSnapshot(
       currentUser.organizationId,
+      currentUser.userId,
     );
-    return { report };
   }
 }

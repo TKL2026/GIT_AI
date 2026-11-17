@@ -4,43 +4,46 @@ import {
   Button,
   Chip,
   Group,
-  Loader,
   Paper,
+  Progress,
   ScrollArea,
   SimpleGrid,
   Stack,
   Text,
   Textarea,
   Title,
+  Tooltip,
   TypographyStylesProvider,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   IconAlertTriangle,
   IconBrandWhatsapp,
   IconBulb,
   IconMessageChatbot,
-  IconReportAnalytics,
   IconSend,
   IconShieldExclamation,
   IconTrash,
   IconTruckDelivery,
 } from '@tabler/icons-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { CopilotMarkdown } from '../../components/CopilotMarkdown';
+import { ThinkingDots } from '../../components/motion/ThinkingDots';
 import { PageHeader } from '../../components/PageHeader';
 import { RecommendationCard } from '../../components/RecommendationCard';
-import { useCopilotChat, useDailyReport } from '../../hooks/useCopilot';
+import { useCopilotChat, useCopilotQuota } from '../../hooks/useCopilot';
 import { useProductsToPush } from '../../hooks/useCommercial';
 import { useFraudAnomalies } from '../../hooks/useFraud';
 import { useReplenishmentForecast } from '../../hooks/useForecast';
 import { useOrganization } from '../../hooks/useOrganization';
 import { usePurchaseRecommendations } from '../../hooks/usePurchasing';
 import { useStockAlerts } from '../../hooks/useStock';
-import { useSendWhatsAppDailyReport } from '../../hooks/useWhatsApp';
+import { useSendWhatsAppDailyReport, useWhatsAppSettings } from '../../hooks/useWhatsApp';
 import { ApiError } from '../../lib/apiClient';
 import { hasFeature } from '../../lib/entitlements';
 import { formatCurrency } from '../../lib/format';
@@ -56,14 +59,15 @@ const SUGGESTIONS = [
 export function CopilotPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [input, setInput] = useState('');
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const chat = useCopilotChat();
-  const dailyReport = useDailyReport();
+  const { data: quota } = useCopilotQuota();
   const sendWhatsAppReport = useSendWhatsAppDailyReport();
-  const isBusy = chat.isPending || dailyReport.isPending || sendWhatsAppReport.isPending;
+  const isBusy = chat.isPending || sendWhatsAppReport.isPending;
 
   const { data: organization } = useOrganization();
   const canSeeFraud = hasFeature(organization, FEATURES.FRAUD);
@@ -71,6 +75,8 @@ export function CopilotPage() {
   const canSeePurchasingAi = hasFeature(organization, FEATURES.PURCHASING_AI);
   const canSeeCommercial = hasFeature(organization, FEATURES.COMMERCIAL);
   const canSeeWhatsApp = hasFeature(organization, FEATURES.WHATSAPP);
+  const { data: whatsAppSettings } = useWhatsAppSettings(canSeeWhatsApp);
+  const whatsAppPaused = whatsAppSettings?.sendingPaused ?? false;
 
   const { data: alerts = [] } = useStockAlerts();
   const { data: anomalies = [] } = useFraudAnomalies(canSeeFraud);
@@ -110,8 +116,16 @@ export function CopilotPage() {
     chat.mutate(nextMessages, {
       onSuccess: (data) => {
         setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
+        void queryClient.invalidateQueries({ queryKey: ['copilot', 'quota'] });
       },
       onError: (err) => {
+        if (err instanceof ApiError && err.code === 'COPILOT_QUOTA_EXCEEDED') {
+          notifications.show({
+            color: 'orange',
+            message: err.message,
+          });
+          return;
+        }
         notifications.show({
           color: 'red',
           message: err instanceof ApiError ? err.message : "Le copilote n'a pas pu répondre.",
@@ -120,28 +134,18 @@ export function CopilotPage() {
     });
   }
 
-  function handleDailyReport() {
-    if (isBusy) return;
-    setMessages((prev) => [...prev, { role: 'user', content: '📊 Générer le rapport du jour' }]);
-
-    dailyReport.mutate(undefined, {
-      onSuccess: (data) => {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.report }]);
-      },
-      onError: (err) => {
-        notifications.show({
-          color: 'red',
-          message: err instanceof ApiError ? err.message : 'Impossible de générer le rapport.',
-        });
-      },
-    });
-  }
-
   function handleSendWhatsAppReport() {
-    if (isBusy) return;
+    if (isBusy || whatsAppPaused) return;
     sendWhatsAppReport.mutate(undefined, {
-      onSuccess: () => {
-        notifications.show({ color: 'green', message: 'Rapport du jour envoyé sur WhatsApp.' });
+      onSuccess: (result) => {
+        if (result.sent > 0) {
+          notifications.show({
+            color: 'green',
+            message: `Rapport envoyé à ${result.sent} destinataire${result.sent > 1 ? 's' : ''} sur WhatsApp.`,
+          });
+        } else if (result.alreadySent > 0) {
+          notifications.show({ color: 'blue', message: "Le rapport d'aujourd'hui a déjà été envoyé." });
+        }
       },
       onError: (err) => {
         notifications.show({
@@ -172,24 +176,21 @@ export function CopilotPage() {
         description="Posez vos questions sur votre activité, en langage naturel."
         action={
           <Group gap="xs">
-            <Button
-              variant="light"
-              leftSection={<IconReportAnalytics size={16} />}
-              onClick={handleDailyReport}
-              disabled={isBusy}
-            >
-              Rapport du jour
-            </Button>
             {canSeeWhatsApp && (
-              <Button
-                variant="light"
-                color="green"
-                leftSection={<IconBrandWhatsapp size={16} />}
-                onClick={handleSendWhatsAppReport}
-                disabled={isBusy}
+              <Tooltip
+                label="Envois WhatsApp temporairement suspendus (validation Meta en cours)."
+                disabled={!whatsAppPaused}
               >
-                Envoyer par WhatsApp
-              </Button>
+                <Button
+                  variant="light"
+                  color="green"
+                  leftSection={<IconBrandWhatsapp size={16} />}
+                  onClick={handleSendWhatsAppReport}
+                  disabled={isBusy || whatsAppPaused}
+                >
+                  Envoyer par WhatsApp
+                </Button>
+              </Tooltip>
             )}
             <Button
               variant="subtle"
@@ -204,14 +205,35 @@ export function CopilotPage() {
         }
       />
 
+      {quota?.isLaunchProgram && quota.limit !== null && quota.remaining !== null && (() => {
+        const atLimit = quota.remaining <= 0;
+        const nearLimit = !atLimit && quota.remaining <= quota.limit * 0.1;
+        const color = atLimit ? 'red' : nearLimit ? 'orange' : 'emerald';
+        const nextReset = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1));
+        const nextResetLabel = nextReset.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+        return (
+          <Stack gap={4} mb="md">
+            <Text size="sm" c={atLimit ? 'red' : nearLimit ? 'orange' : 'dimmed'}>
+              {atLimit
+                ? `Limite mensuelle de ${quota.limit} requêtes atteinte — réinitialisation le ${nextResetLabel}.`
+                : `Il vous reste ${quota.remaining} / ${quota.limit} requêtes ce mois-ci`}
+              {nearLimit && ` — vous approchez de la limite mensuelle`}
+            </Text>
+            <Progress value={(quota.used / quota.limit) * 100} color={color} size="sm" />
+          </Stack>
+        );
+      })()}
+
       <Paper withBorder radius="md" p="md" mb="md">
         <ScrollArea h={messages.length === 0 ? undefined : 480} viewportRef={viewportRef}>
           <Stack gap="sm">
             {messages.length === 0 && (
               <Stack gap="lg" py="md">
-                <Title order={4}>
-                  Bonjour {user?.firstName}, j'ai analysé votre activité.
-                </Title>
+                <Group gap="xs">
+                  <Title order={4}>
+                    Bonjour {user?.firstName}, j'ai analysé votre activité.
+                  </Title>
+                </Group>
 
                 {hasRecommendations ? (
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
@@ -302,40 +324,54 @@ export function CopilotPage() {
               </Stack>
             )}
 
-            {messages.map((message, index) => (
-              <Paper
-                key={index}
-                withBorder={message.role === 'assistant'}
-                p="sm"
-                radius="md"
-                bg={message.role === 'user' ? 'emerald.6' : undefined}
-                style={{
-                  alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '80%',
-                }}
-              >
-                {message.role === 'user' ? (
-                  <Text size="sm" c="white" style={{ whiteSpace: 'pre-wrap' }}>
-                    {message.content}
-                  </Text>
-                ) : (
-                  <TypographyStylesProvider fz="sm">
-                    <CopilotMarkdown>{message.content}</CopilotMarkdown>
-                  </TypographyStylesProvider>
-                )}
-              </Paper>
-            ))}
+            <AnimatePresence initial={false}>
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}
+                >
+                  <Paper
+                    withBorder={message.role === 'assistant'}
+                    p="sm"
+                    radius="md"
+                    bg={message.role === 'user' ? 'emerald.6' : undefined}
+                  >
+                    {message.role === 'user' ? (
+                      <Text size="sm" c="white" style={{ whiteSpace: 'pre-wrap' }}>
+                        {message.content}
+                      </Text>
+                    ) : (
+                      <TypographyStylesProvider fz="sm">
+                        <CopilotMarkdown>{message.content}</CopilotMarkdown>
+                      </TypographyStylesProvider>
+                    )}
+                  </Paper>
+                </motion.div>
+              ))}
 
-            {isBusy && (
-              <Paper withBorder p="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
-                <Group gap="xs">
-                  <Loader size="xs" />
-                  <Text size="sm" c="dimmed">
-                    Le copilote réfléchit…
-                  </Text>
-                </Group>
-              </Paper>
-            )}
+              {isBusy && (
+                <motion.div
+                  key="thinking"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  <Paper withBorder p="sm" radius="md">
+                    <Group gap="xs">
+                      <ThinkingDots />
+                      <Text size="sm" c="dimmed">
+                        Le copilote réfléchit…
+                      </Text>
+                    </Group>
+                  </Paper>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Stack>
         </ScrollArea>
       </Paper>

@@ -68,7 +68,7 @@ export function SubscriptionExpiredPage() {
               ? 'Accès suspendu'
               : isAwaitingPayment
                 ? 'Finalisez votre inscription'
-                : "Votre période d'essai est terminée"}
+                : 'Votre accès gratuit est terminé'}
           </Title>
           <Text c="dimmed" size="lg" maw={480}>
             {isSuspended

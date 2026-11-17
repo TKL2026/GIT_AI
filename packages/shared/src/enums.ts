@@ -37,6 +37,9 @@ export enum ExpenseCategory {
 
 export enum SubscriptionStatus {
   TRIAL = 'TRIAL',
+  /// Programme de lancement Cameroun : accès complet gratuit, 90 jours par
+  /// défaut (voir apps/api/prisma/schema.prisma) — distinct de TRIAL.
+  LAUNCH_PROGRAM = 'LAUNCH_PROGRAM',
   AWAITING_PAYMENT = 'AWAITING_PAYMENT',
   ACTIVE = 'ACTIVE',
   PAST_DUE = 'PAST_DUE',

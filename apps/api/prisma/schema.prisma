@@ -51,6 +51,12 @@ enum ExpenseCategory {
 enum SubscriptionStatus {
   /// Essai gratuit de 7 jours en cours — accès complet.
   TRIAL
+  /// Programme de lancement Cameroun : accès complet gratuit sans carte
+  /// bancaire, durée configurable (LAUNCH_PROGRAM_TRIAL_DAYS). Distinct de
+  /// TRIAL pour que l'admin/les rapports puissent les différencier. Expire
+  /// vers TRIAL_EXPIRED (même état terminal que l'essai classique) — voir
+  /// subscription-status.util.ts et SubscriptionGuard.
+  LAUNCH_PROGRAM
   /// Offre payante choisie à l'inscription, paiement jamais confirmé — aucun
   /// accès, distinct de TRIAL (jamais eu d'essai) et de TRIAL_EXPIRED (essai
   /// consommé) : sémantique métier différente, voir subscription-status.util.ts.
@@ -118,6 +124,12 @@ model Organization {
   /// en plus (jamais à la place) de isSubscriptionLocked().
   suspendedAt DateTime?
 
+  /// Active l'envoi automatique du rapport quotidien WhatsApp (22h,
+  /// Africa/Douala). Nécessite au moins un WhatsAppRecipient (position 1)
+  /// — vérifié au niveau applicatif (WhatsAppRecipientsService), pas une
+  /// contrainte DB.
+  whatsappReportsEnabled Boolean @default(false)
+
   users               User[]
   products            Product[]
   stockMovements      StockMovement[]
@@ -129,6 +141,8 @@ model Organization {
   subscription        Subscription?
   paymentTransactions PaymentTransaction[]
   copilotUsageLogs    CopilotUsageLog[]
+  whatsappRecipients  WhatsAppRecipient[]
+  whatsappReportLogs  WhatsAppReportLog[]
 
   @@map("organizations")
 }
@@ -156,6 +170,8 @@ model User {
   sales                 Sale[]
   purchaseOrders        PurchaseOrder[]
   expenses              Expense[]
+  copilotUserUsage      CopilotUserUsage[]
+  copilotUsageLogs      CopilotUsageLog[]
 
   @@index([organizationId])
   @@map("users")
@@ -523,6 +539,56 @@ model AdminAuditLog {
   @@map("admin_audit_logs")
 }
 
+enum WhatsAppReportStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+/// Jusqu'à 3 numéros WhatsApp destinataires par organisation (position 1
+/// obligatoire si Organization.whatsappReportsEnabled, 2 et 3 facultatifs).
+/// Numéro toujours normalisé (237XXXXXXXXX, voir billing/phone.util.ts),
+/// jamais stocké au format libre saisi par l'utilisateur.
+model WhatsAppRecipient {
+  id             String   @id @default(uuid())
+  organizationId String
+  phoneNumber    String
+  position       Int
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, position])
+  @@index([organizationId])
+  @@map("whatsapp_recipients")
+}
+
+/// Une ligne par (organisation, jour civil Africa/Douala, destinataire).
+/// La contrainte unique ci-dessous EST le verrou anti-doublon : si la tâche
+/// planifiée se déclenche deux fois (redémarrage, plusieurs instances), ou
+/// si l'envoi manuel est déclenché le même jour, la deuxième tentative de
+/// création échoue (P2002) et aucun second message n'est jamais envoyé —
+/// voir WhatsAppReportSenderService.
+model WhatsAppReportLog {
+  id             String               @id @default(uuid())
+  organizationId String
+  reportDate     String
+  phoneNumber    String
+  status         WhatsAppReportStatus @default(PENDING)
+  messageId      String?
+  errorMessage   String?
+  attemptCount   Int                  @default(1)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, reportDate, phoneNumber])
+  @@index([organizationId])
+  @@index([reportDate])
+  @@map("whatsapp_report_logs")
+}
+
 /// Métadonnées d'usage Copilot à des fins d'observabilité interne
 /// (coût moyen par client/plan, répartition Haiku/Sonnet...) — jamais
 /// exposé aux utilisateurs. Ne stocke volontairement aucun contenu de
@@ -530,17 +596,51 @@ model AdminAuditLog {
 model CopilotUsageLog {
   id             String   @id @default(uuid())
   organizationId String
+  /// Nullable : attribution par utilisateur ajoutée après coup — les lignes
+  /// historiques créées avant ce champ n'ont pas cette information.
+  userId         String?
   model          String
   inputTokens    Int?
   outputTokens   Int?
+  /// Tokens d'écriture/lecture du cache de prompt Anthropic — nécessaires
+  /// pour que le coût estimé reflète le vrai tarif (le cache-read coûte
+  /// ~10x moins cher qu'un token d'entrée standard).
+  cacheCreationInputTokens Int?
+  cacheReadInputTokens     Int?
+  /// Coût estimé en USD, calculé à l'écriture via une grille tarifaire
+  /// statique par modèle (voir cost-estimation.ts) — approximatif par
+  /// construction, à usage interne uniquement.
+  estimatedCostUsd Decimal? @db.Decimal(10, 6)
   durationMs     Int
   toolsUsed      String[] @default([])
   planCode       String?
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
+  @@index([userId])
   @@index([createdAt])
   @@map("copilot_usage_logs")
+}
+
+/// Quota mensuel de requêtes Copilot par utilisateur — réservé aux
+/// organisations en LAUNCH_PROGRAM (voir copilot-quota.guard.ts). Une ligne
+/// par (utilisateur, mois UTC), créée paresseusement à la première requête
+/// du mois — pas de job planifié pour réinitialiser quoi que ce soit.
+model CopilotUserUsage {
+  id           String   @id @default(uuid())
+  userId       String
+  /// "YYYY-MM" en UTC.
+  periodKey    String
+  requestsUsed Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodKey])
+  @@index([userId])
+  @@map("copilot_user_usage")
 }

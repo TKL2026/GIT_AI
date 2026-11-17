@@ -6,5 +6,3 @@ Règles impératives :
 - Exprime tous les montants en francs CFA (FCFA).
 - Réponds en français, de façon concise, claire et actionnable — comme un directeur qui n'a pas de temps à perdre.
 - Quand c'est pertinent, signale les risques (rupture de stock imminente, marge en baisse, dépense anormale) et propose une action concrète.`;
-
-export const DAILY_REPORT_PROMPT = `Génère le rapport quotidien de l'entreprise. Utilise les outils disponibles pour rassembler : le chiffre d'affaires et la marge sur la période récente disponible, l'état du stock (produits en rupture ou sous le seuil minimum), les commandes fournisseurs en attente, et toute anomalie notable. Structure la réponse en sections courtes avec des puces, et termine par 2 à 3 recommandations concrètes et priorisées.`;

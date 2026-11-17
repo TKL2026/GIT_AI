@@ -284,6 +284,8 @@ describe('CopilotEngine', () => {
       const params = create.mock.calls[0][0];
       expect(params.model).toBe('test-haiku');
       expect(params.output_config).toBeUndefined();
+      expect(params.thinking).toBeUndefined();
+      expect(params.max_tokens).toBe(1536);
     });
 
     it('utilise le modèle Sonnet et conserve output_config pour un message classé complexe', async () => {
@@ -299,6 +301,8 @@ describe('CopilotEngine', () => {
       const params = create.mock.calls[0][0];
       expect(params.model).toBe('test-sonnet');
       expect(params.output_config).toEqual({ effort: 'medium' });
+      expect(params.thinking).toEqual({ type: 'adaptive' });
+      expect(params.max_tokens).toBe(4096);
     });
 
     it('ne change jamais de modèle en cours de boucle d\'outils (décidé une seule fois sur le dernier message utilisateur)', async () => {
@@ -318,16 +322,26 @@ describe('CopilotEngine', () => {
       expect(create.mock.calls[1][0].model).toBe('test-haiku');
     });
 
-    it('cumule inputTokens/outputTokens et toolsUsed sur toutes les itérations d\'outils', async () => {
+    it('cumule inputTokens/outputTokens/tokens de cache et toolsUsed sur toutes les itérations d\'outils', async () => {
       const create = jest
         .fn()
         .mockResolvedValueOnce({
           ...toolUseMessage('get_stock_alerts', {}),
-          usage: { input_tokens: 100, output_tokens: 20 } as Anthropic.Usage,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 20,
+            cache_creation_input_tokens: 5,
+            cache_read_input_tokens: 0,
+          } as Anthropic.Usage,
         })
         .mockResolvedValueOnce({
           ...textMessage('Un produit est en rupture.'),
-          usage: { input_tokens: 150, output_tokens: 40 } as Anthropic.Usage,
+          usage: {
+            input_tokens: 150,
+            output_tokens: 40,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 80,
+          } as Anthropic.Usage,
         });
       const client: AnthropicMessagesClient = { messages: { create } };
       const dataProvider = buildDataProvider({
@@ -339,6 +353,8 @@ describe('CopilotEngine', () => {
 
       expect(reply.inputTokens).toBe(250);
       expect(reply.outputTokens).toBe(60);
+      expect(reply.cacheCreationInputTokens).toBe(5);
+      expect(reply.cacheReadInputTokens).toBe(80);
       expect(reply.toolsUsed).toEqual(['get_stock_alerts']);
       expect(reply.model).toBe('claude-haiku-4-5-20251001');
     });

@@ -18,6 +18,8 @@ import { PrismaService } from "../../prisma/prisma.service";
  *   -> accès libre historique, donc niveau Pro complet.
  * - TRIAL (jamais verrouillé à ce stade puisque SubscriptionGuard a laissé
  *   passer) -> niveau Pro complet pendant les 7 jours, comme demandé.
+ * - LAUNCH_PROGRAM (même raisonnement que TRIAL) -> niveau Pro complet
+ *   pendant la durée du programme de lancement.
  * - ACTIVE -> exactement les features du Plan payé, ni plus ni moins.
  * - Tout le reste (AWAITING_PAYMENT, TRIAL_EXPIRED, EXPIRED, PAST_DUE,
  *   CANCELLED) -> aucune fonctionnalité. Ne devrait jamais être atteint en
@@ -38,7 +40,7 @@ export class EntitlementsService {
       return new Set(PRO_FEATURES);
     }
 
-    if (subscription.status === "TRIAL") {
+    if (subscription.status === "TRIAL" || subscription.status === "LAUNCH_PROGRAM") {
       return new Set(PRO_FEATURES);
     }
 

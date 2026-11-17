@@ -46,6 +46,27 @@ const DOMAIN_PATTERNS: RegExp[] = [
   /\bfournisseur/i,
 ];
 
+// Salutations / small-talk — ne nécessitent aucune capacité d'analyse ERP,
+// routées vers Haiku indépendamment de la longueur ou de l'allowlist de
+// lookups métier ci-dessous. Vérifié APRÈS COMPLEX_PATTERNS/domaines/
+// longueur (donc "Bonjour, peux-tu analyser mes finances ?" reste
+// 'complex' : le mot "analys" est détecté avant d'atteindre ce test) — une
+// salutation ne doit jamais masquer un vrai signal complexe.
+const GREETING_PATTERNS: RegExp[] = [
+  /\bbonjour\b/i,
+  /\bbonsoir\b/i,
+  /\bsalut\b/i,
+  /\bcoucou\b/i,
+  /\bmerci\b/i,
+  /\bau revoir\b/i,
+  /\b[cç]a va\b/i,
+  /\bcomment (allez-vous|vas-tu)\b/i,
+  /\bhello\b/i,
+  /\bhi\b/i,
+];
+
+const MAX_GREETING_MESSAGE_LENGTH = 60;
+
 // N'est consulté QUE si aucun signal complexe n'a été détecté — un sous-
 // ensemble volontairement restreint de demandes de comptage/consultation
 // directe, correspondant exactement aux capacités "sans analyse" des
@@ -79,6 +100,11 @@ export function classifyComplexity(userMessage: string): ComplexityTier {
   if (countDistinctDomains(userMessage) >= 3) return 'complex';
 
   if (userMessage.length > COMPLEX_MESSAGE_LENGTH_THRESHOLD) return 'complex';
+
+  const hasGreetingSignal = GREETING_PATTERNS.some((pattern) => pattern.test(userMessage));
+  if (hasGreetingSignal && userMessage.length <= MAX_GREETING_MESSAGE_LENGTH) {
+    return 'simple';
+  }
 
   const hasSimpleSignal = SIMPLE_PATTERNS.some((pattern) => pattern.test(userMessage));
   if (hasSimpleSignal && userMessage.length <= MAX_SIMPLE_MESSAGE_LENGTH) {

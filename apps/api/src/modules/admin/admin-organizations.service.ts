@@ -208,10 +208,11 @@ export class AdminOrganizationsService {
     }
     if (
       subscription.status !== "TRIAL" &&
+      subscription.status !== "LAUNCH_PROGRAM" &&
       subscription.status !== "TRIAL_EXPIRED"
     ) {
       throw new ConflictException(
-        "L'extension d'essai n'est possible que pour un essai en cours ou expiré.",
+        "L'extension d'essai n'est possible que pour un essai, un programme de lancement, en cours ou expiré.",
       );
     }
 
@@ -221,11 +222,15 @@ export class AdminOrganizationsService {
         ? subscription.currentPeriodEnd
         : now;
     const newPeriodEnd = new Date(base.getTime() + days * DAY_MS);
+    // Un LAUNCH_PROGRAM prolongé reste LAUNCH_PROGRAM (pas rebasculé en
+    // TRIAL) — un TRIAL/TRIAL_EXPIRED prolongé redevient TRIAL, comme avant.
+    const restoredStatus =
+      subscription.status === "LAUNCH_PROGRAM" ? "LAUNCH_PROGRAM" : "TRIAL";
 
     await this.prisma.$transaction(async (tx) => {
       await tx.subscription.update({
         where: { organizationId: id },
-        data: { status: "TRIAL", currentPeriodEnd: newPeriodEnd },
+        data: { status: restoredStatus, currentPeriodEnd: newPeriodEnd },
       });
       await this.auditLogService.record(
         {

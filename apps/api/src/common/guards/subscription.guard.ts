@@ -54,15 +54,17 @@ export class SubscriptionGuard {
 
     if (!isSubscriptionLocked(subscription)) return true;
 
-    // Auto-guérison : bascule TRIAL -> TRIAL_EXPIRED en base au premier
-    // passage après expiration. Compare-and-swap sur le statut (même pattern
-    // que billing.service.ts#applyPaymentResult) : si un paiement concurrent
-    // a déjà activé l'abonnement, cette écriture ne touche aucune ligne et
-    // ne peut pas écraser un statut ACTIVE fraîchement posé.
-    if (subscription?.status === "TRIAL") {
+    // Auto-guérison : bascule TRIAL/LAUNCH_PROGRAM -> TRIAL_EXPIRED en base
+    // au premier passage après expiration (même état terminal pour les
+    // deux — pas de statut d'expiration séparé pour le programme de
+    // lancement). Compare-and-swap sur le statut COURANT (même pattern que
+    // billing.service.ts#applyPaymentResult) : si un paiement concurrent a
+    // déjà activé l'abonnement, cette écriture ne touche aucune ligne et ne
+    // peut pas écraser un statut ACTIVE fraîchement posé.
+    if (subscription?.status === "TRIAL" || subscription?.status === "LAUNCH_PROGRAM") {
       void this.prisma.subscription
         .updateMany({
-          where: { id: subscription.id, status: "TRIAL" },
+          where: { id: subscription.id, status: subscription.status },
           data: { status: "TRIAL_EXPIRED" },
         })
         .catch((error) =>

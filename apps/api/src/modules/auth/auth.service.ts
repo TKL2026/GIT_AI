@@ -123,16 +123,33 @@ export class AuthService {
           },
         });
       } else {
-        // Essai gratuit de 7 jours, démarré automatiquement à l'inscription.
         const now = new Date();
-        await tx.subscription.create({
-          data: {
-            organizationId: organization.id,
-            status: "TRIAL",
-            startedAt: now,
-            currentPeriodEnd: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-          },
-        });
+        // Programme de lancement Cameroun : interrupteur de config, désactivé
+        // par défaut — tant qu'il ne vaut pas "true", le comportement est
+        // identique à avant (essai gratuit de 7 jours, inchangé ci-dessous).
+        if (this.configService.get<string>("LAUNCH_PROGRAM_ENABLED") === "true") {
+          const days = Number(
+            this.configService.get<string>("LAUNCH_PROGRAM_TRIAL_DAYS") ?? "90",
+          );
+          await tx.subscription.create({
+            data: {
+              organizationId: organization.id,
+              status: "LAUNCH_PROGRAM",
+              startedAt: now,
+              currentPeriodEnd: new Date(now.getTime() + days * 24 * 60 * 60 * 1000),
+            },
+          });
+        } else {
+          // Essai gratuit de 7 jours, démarré automatiquement à l'inscription.
+          await tx.subscription.create({
+            data: {
+              organizationId: organization.id,
+              status: "TRIAL",
+              startedAt: now,
+              currentPeriodEnd: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
       }
 
       return createdUser;

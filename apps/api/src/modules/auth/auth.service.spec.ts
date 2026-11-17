@@ -187,6 +187,95 @@ describe('AuthService', () => {
       expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
     });
 
+    it("sans planCode, LAUNCH_PROGRAM_ENABLED=true : crée une Subscription LAUNCH_PROGRAM avec la durée configurée (90 jours par défaut)", async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          JWT_ACCESS_EXPIRES_IN: '15m',
+          JWT_REFRESH_EXPIRES_IN: '7d',
+          LAUNCH_PROGRAM_ENABLED: 'true',
+        };
+        return values[key];
+      });
+
+      await authService.register({
+        organizationName: 'Boutique',
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+      });
+
+      expect(subscriptionCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          organizationId: 'org-1',
+          status: 'LAUNCH_PROGRAM',
+          startedAt: expect.any(Date),
+          currentPeriodEnd: expect.any(Date),
+        }),
+      });
+      const call = subscriptionCreate.mock.calls[0][0].data;
+      expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(90 * 24 * 60 * 60 * 1000);
+    });
+
+    it("sans planCode, LAUNCH_PROGRAM_ENABLED=true et LAUNCH_PROGRAM_TRIAL_DAYS=30 : respecte la durée configurée", async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          JWT_ACCESS_EXPIRES_IN: '15m',
+          JWT_REFRESH_EXPIRES_IN: '7d',
+          LAUNCH_PROGRAM_ENABLED: 'true',
+          LAUNCH_PROGRAM_TRIAL_DAYS: '30',
+        };
+        return values[key];
+      });
+
+      await authService.register({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+      });
+
+      const call = subscriptionCreate.mock.calls[0][0].data;
+      expect(call.currentPeriodEnd.getTime() - call.startedAt.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+    });
+
+    it('avec planCode=standard, même si LAUNCH_PROGRAM_ENABLED=true : garde AWAITING_PAYMENT (le choix explicite d\'un plan payant prime)', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      prisma.plan.findUnique.mockResolvedValue({ id: 'plan-standard', code: 'standard', isActive: true, price: 5000 });
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          JWT_ACCESS_EXPIRES_IN: '15m',
+          JWT_REFRESH_EXPIRES_IN: '7d',
+          LAUNCH_PROGRAM_ENABLED: 'true',
+        };
+        return values[key];
+      });
+
+      await authService.register({
+        email: 'owner@demo.com',
+        password: 'Password123!',
+        firstName: 'Demo',
+        lastName: 'Owner',
+        planCode: 'standard',
+      });
+
+      expect(subscriptionCreate).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org-1',
+          planId: 'plan-standard',
+          status: 'AWAITING_PAYMENT',
+        },
+      });
+    });
+
     it('avec planCode=standard : vérifie le plan en base puis crée une Subscription AWAITING_PAYMENT, sans aucune période d\'essai', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       prisma.plan.findUnique.mockResolvedValue({ id: 'plan-standard', code: 'standard', isActive: true, price: 5000 });

@@ -113,9 +113,28 @@ class EnvironmentVariables {
   @IsString()
   WHATSAPP_APP_SECRET?: string;
 
+  /** Optionnel, mais les DEUX doivent être renseignées ensemble pour que le
+   * rapport quotidien automatique parte réellement : sans elles, l'envoi
+   * échoue proprement (FAILED journalisé) plutôt que de tenter un message en
+   * texte libre hors de la fenêtre de service de 24h de Meta (voir
+   * WhatsAppReportSenderService). Nom et langue doivent correspondre
+   * exactement au modèle approuvé dans Meta Business Suite. */
   @IsOptional()
   @IsString()
-  WHATSAPP_INBOUND_ORGANIZATION_ID?: string;
+  WHATSAPP_REPORT_TEMPLATE_NAME?: string;
+
+  @IsOptional()
+  @IsString()
+  WHATSAPP_REPORT_TEMPLATE_LANGUAGE?: string;
+
+  /** Interrupteur de mise en pause de WhatsApp (lancement UGE sans
+   * dépendre des délais de validation Meta). ABSENTE = considérée "true"
+   * (en pause) par défaut — voir isWhatsAppPaused() dans
+   * whatsapp-pause.util.ts. Positionner explicitement "false" pour
+   * réactiver les envois. */
+  @IsOptional()
+  @IsString()
+  WHATSAPP_REPORTS_PAUSED?: string;
 
   /** Optionnel : désactivé par défaut. Ne jamais activer en production durable — accès sans mot de passe au compte démo, réservé aux audits temporaires. */
   @IsOptional()
@@ -132,6 +151,28 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   TWO_FA_BYPASS_EMAIL?: string;
+
+  /** Optionnel, défaut désactivé ("false"). Active le Programme de lancement
+   * Cameroun : register() sans planCode crée un abonnement LAUNCH_PROGRAM
+   * (accès Pro complet, quota Copilote par utilisateur) au lieu du TRIAL de
+   * 7 jours historique. Désactivé = comportement 100% inchangé — c'est le
+   * seul interrupteur à repasser à "false" pour revenir en arrière. */
+  @IsOptional()
+  @IsString()
+  LAUNCH_PROGRAM_ENABLED?: string;
+
+  /** Optionnel, défaut "90". Durée en jours du Programme de lancement,
+   * consultée uniquement si LAUNCH_PROGRAM_ENABLED === "true". */
+  @IsOptional()
+  @IsString()
+  LAUNCH_PROGRAM_TRIAL_DAYS?: string;
+
+  /** Optionnel, défaut "700". Quota Copilote mensuel PAR UTILISATEUR pour
+   * les organisations en LAUNCH_PROGRAM — voir copilot-user-quota.service.ts.
+   * N'affecte jamais le quota par organisation des abonnements payants. */
+  @IsOptional()
+  @IsString()
+  LAUNCH_PROGRAM_COPILOT_QUOTA?: string;
 
   /** Optionnel : sans ces variables, les routes /billing/checkout et le
    * webhook CamPay répondent 503. Ne jamais mélanger sandbox/production. */
