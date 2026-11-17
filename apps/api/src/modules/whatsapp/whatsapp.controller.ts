@@ -36,7 +36,11 @@ export class WhatsAppController {
   @ApiCreatedResponse({ type: SendMessageResponseDto })
   async sendDailyReport(@CurrentUser() currentUser: AuthenticatedUser): Promise<SendMessageResponseDto> {
     const recipient = this.getRecipient();
-    const report = await this.copilotService.generateDailyReport(currentUser.organizationId);
+    const report = await this.copilotService.generateDailyReport(
+      currentUser.organizationId,
+      currentUser.userId,
+      currentUser.copilotQuotaMechanism === "per-user",
+    );
     const messageId = await this.whatsAppService.sendText(recipient, toWhatsAppText(report));
     return { messageId };
   }

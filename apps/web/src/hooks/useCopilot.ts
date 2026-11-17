@@ -8,6 +8,12 @@ export function useCopilotChat() {
   });
 }
 
+export function useDailyReport() {
+  return useMutation({
+    mutationFn: () => copilotApi.getDailyReport(),
+  });
+}
+
 export function useCopilotQuota() {
   return useQuery({
     queryKey: ['copilot', 'quota'],

@@ -83,9 +83,12 @@ export class WhatsAppWebhookController {
         continue;
       }
 
-      const reply = await this.copilotService.chat(organizationId, [
-        { role: 'user', content: message.text.body },
-      ]);
+      const reply = await this.copilotService.chat(
+        organizationId,
+        null,
+        false,
+        [{ role: 'user', content: message.text.body }],
+      );
       await this.whatsAppService.sendText(message.from, toWhatsAppText(reply));
     }
   }

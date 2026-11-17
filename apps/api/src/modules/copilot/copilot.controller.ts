@@ -9,6 +9,7 @@ import { CopilotService } from "./copilot.service";
 import { ChatRequestDto } from "./dto/chat-request.dto";
 import { ChatResponseDto } from "./dto/chat-response.dto";
 import { CopilotQuotaResponseDto } from "./dto/copilot-quota-response.dto";
+import { DailyReportResponseDto } from "./dto/daily-report-response.dto";
 
 @ApiTags("copilot")
 @ApiBearerAuth()
@@ -31,6 +32,20 @@ export class CopilotController {
       dto.messages,
     );
     return { message };
+  }
+
+  @Get("daily-report")
+  @UseGuards(CopilotQuotaGuard)
+  @ApiOkResponse({ type: DailyReportResponseDto })
+  async dailyReport(
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<DailyReportResponseDto> {
+    const report = await this.copilotService.generateDailyReport(
+      currentUser.organizationId,
+      currentUser.userId,
+      currentUser.copilotQuotaMechanism === "per-user",
+    );
+    return { report };
   }
 
   // Lecture seule, jamais derrière CopilotQuotaGuard : consulter son quota

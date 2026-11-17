@@ -39,7 +39,7 @@ export class CopilotService {
    */
   async chat(
     organizationId: string,
-    userId: string,
+    userId: string | null,
     usesPerUserQuota: boolean,
     messages: ChatMessage[],
   ): Promise<string> {
@@ -56,13 +56,31 @@ export class CopilotService {
     return result.message;
   }
 
+  async generateDailyReport(
+    organizationId: string,
+    userId: string | null,
+    usesPerUserQuota: boolean,
+  ): Promise<string> {
+    const engine = this.getEngine();
+    const startedAt = Date.now();
+    let result: ChatResult;
+    try {
+      result = await engine.generateDailyReport(organizationId);
+    } catch (error) {
+      await this.releaseQuotaUnit(organizationId, userId, usesPerUserQuota);
+      throw error;
+    }
+    void this.logUsage(organizationId, userId, result, Date.now() - startedAt);
+    return result.message;
+  }
+
   private async releaseQuotaUnit(
     organizationId: string,
-    userId: string,
+    userId: string | null,
     usesPerUserQuota: boolean,
   ): Promise<void> {
     try {
-      if (usesPerUserQuota) {
+      if (usesPerUserQuota && userId) {
         await this.copilotUserQuotaService.releaseOne(userId);
       } else {
         await this.copilotQuotaService.releaseOne(organizationId);
@@ -107,7 +125,7 @@ export class CopilotService {
    */
   private async logUsage(
     organizationId: string,
-    userId: string,
+    userId: string | null,
     result: ChatResult,
     durationMs: number,
   ): Promise<void> {

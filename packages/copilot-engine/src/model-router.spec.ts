@@ -1,4 +1,5 @@
 import { classifyComplexity } from './model-router';
+import { DAILY_REPORT_PROMPT } from './prompts';
 
 describe('classifyComplexity', () => {
   describe('messages simples (Haiku attendu)', () => {
@@ -49,6 +50,10 @@ describe('classifyComplexity', () => {
     it('ne route JAMAIS vers Haiku une demande d\'analyse croisée multi-domaines, même formulée simplement (règle absolue)', () => {
       const forbidden = 'Analyse mes ventes, ma marge, mes stocks et mes achats et donne-moi les actions prioritaires.';
       expect(classifyComplexity(forbidden)).toBe('complex');
+    });
+
+    it('route le rapport quotidien (DAILY_REPORT_PROMPT) vers Sonnet', () => {
+      expect(classifyComplexity(DAILY_REPORT_PROMPT)).toBe('complex');
     });
 
     it('force Sonnet dès que 3 domaines métier ou plus sont combinés, même sans mot-clé d\'analyse', () => {

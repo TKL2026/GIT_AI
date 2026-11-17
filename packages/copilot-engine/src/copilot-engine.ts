@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BusinessDataProvider } from './contracts/business-data-provider.interface';
 import { classifyComplexity } from './model-router';
-import { SYSTEM_PROMPT } from './prompts';
+import { DAILY_REPORT_PROMPT, SYSTEM_PROMPT } from './prompts';
 import { COPILOT_TOOLS } from './tools';
 
 export interface ChatMessage {
@@ -145,6 +145,10 @@ export class CopilotEngine {
     }
 
     throw new Error("Le copilote n'a pas pu conclure dans le nombre d'itérations d'outils autorisé.");
+  }
+
+  async generateDailyReport(tenantId: string): Promise<ChatResult> {
+    return this.chat(tenantId, [{ role: 'user', content: DAILY_REPORT_PROMPT }]);
   }
 
   private async executeTool(tenantId: string, name: string, input: unknown): Promise<string> {

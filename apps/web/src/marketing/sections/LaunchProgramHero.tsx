@@ -1,6 +1,5 @@
 import { Badge, Button, Card, Container, List, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
-import { TapLift } from '../../components/motion/MotionButton';
 import { Reveal } from '../Reveal';
 
 const LAUNCH_PROGRAM_FEATURES = [
@@ -55,11 +54,9 @@ export function LaunchProgramHero({ onStart }: { onStart: () => void }) {
               ))}
             </List>
 
-            <TapLift fullWidth>
-              <Button size="lg" onClick={onStart} fullWidth maw={320} mt="sm">
-                Commencer gratuitement
-              </Button>
-            </TapLift>
+            <Button size="lg" onClick={onStart} fullWidth maw={320} mt="sm">
+              Commencer gratuitement
+            </Button>
 
             <Text size="sm" c="dimmed">
               Sans carte bancaire · Sans engagement · Aucune facturation automatique

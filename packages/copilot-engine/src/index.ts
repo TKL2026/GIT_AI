@@ -28,4 +28,4 @@ export {
 } from './copilot-engine';
 export { ComplexityTier, classifyComplexity } from './model-router';
 export { COPILOT_TOOLS } from './tools';
-export { SYSTEM_PROMPT } from './prompts';
+export { DAILY_REPORT_PROMPT, SYSTEM_PROMPT } from './prompts';
